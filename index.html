@@ -14,306 +14,11 @@
 <meta name="apple-mobile-web-app-title" content="鉄の帳簿">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png" sizes="192x192">
-<style>html{color-scheme:light dark}img{max-width:100%}[hidden]{display:none!important}
-body{padding-bottom:env(safe-area-inset-bottom)}</style>
+<style>html{color-scheme:light dark}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600&display=swap">
-<style>
-:root{
-  --ground:#e6e8ea; --surface:#fbfbfa; --surface-2:#eef0f1; --raise:#ffffff;
-  --ink:#14161a; --ink-2:#4a515c; --ink-3:#7b838f;
-  --line:#d2d6da; --line-2:#bfc5cb;
-  --accent:#c8202b; --steel:#1f5fbf; --gold:#8f6f12; --grass:#2c7a41;
-  --shadow:0 1px 1px rgba(20,22,26,.05), 0 10px 26px -18px rgba(20,22,26,.55);
-  --plate-white-ink:#2a2d33;
-  --font-display:"Oswald",system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
-  --font-body:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --ground:#0e1013; --surface:#171a1f; --surface-2:#1e222a; --raise:#242932;
-    --ink:#e9ebee; --ink-2:#a7aeb9; --ink-3:#79808c;
-    --line:#2a2f37; --line-2:#3a414b;
-    --accent:#ff4a52; --steel:#5f9dff; --gold:#e2b53c; --grass:#4fbf6c;
-    --shadow:0 1px 1px rgba(0,0,0,.4), 0 12px 30px -18px rgba(0,0,0,.9);
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0e1013; --surface:#171a1f; --surface-2:#1e222a; --raise:#242932;
-  --ink:#e9ebee; --ink-2:#a7aeb9; --ink-3:#79808c;
-  --line:#2a2f37; --line-2:#3a414b;
-  --accent:#ff4a52; --steel:#5f9dff; --gold:#e2b53c; --grass:#4fbf6c;
-  --shadow:0 1px 1px rgba(0,0,0,.4), 0 12px 30px -18px rgba(0,0,0,.9);
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0; background:var(--ground); color:var(--ink);
-  font-family:var(--font-body); font-size:15px; line-height:1.6;
-  -webkit-text-size-adjust:100%;
-}
-.wrap{max-width:600px; margin:0 auto; padding-inline:16px; padding-block:20px 64px;
-  display:flex; flex-direction:column; gap:18px}
-h1,h2,h3{margin:0; text-wrap:balance}
-button{font:inherit; color:inherit; cursor:pointer}
-:focus-visible{outline:2px solid var(--steel); outline-offset:2px; border-radius:4px}
-.num{font-family:var(--font-display); font-variant-numeric:tabular-nums; font-weight:500}
-.eyebrow{font-family:var(--font-display); font-weight:500; font-size:11px;
-  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)}
-
-/* ── ヘッダー ───────────────────────────── */
-.masthead{display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
-  border-bottom:2px solid var(--ink); padding-bottom:10px}
-.mark{font-family:var(--font-display); font-weight:600; font-size:clamp(21px,5.4vw,30px);
-  line-height:1; letter-spacing:.02em}
-.mark small{display:block; font-size:10px; letter-spacing:.28em; color:var(--ink-3);
-  font-weight:500; margin-top:5px}
-.clock{text-align:right; font-size:11px; color:var(--ink-3); line-height:1.5;
-  font-variant-numeric:tabular-nums; white-space:nowrap}
-.clock b{color:var(--ink-2); font-weight:500}
-
-.tally{display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
-  background:var(--line); border:1px solid var(--line); border-radius:2px; overflow:hidden}
-.tally div{background:var(--surface); padding:10px 12px}
-.tally .v{font-family:var(--font-display); font-weight:500; font-size:26px; line-height:1.1;
-  font-variant-numeric:tabular-nums}
-.tally .v span{font-size:12px; color:var(--ink-3); margin-left:2px}
-.tally .k{font-size:10.5px; color:var(--ink-3); letter-spacing:.04em}
-
-.sample-note{display:flex; gap:8px; align-items:baseline; font-size:12px; color:var(--ink-2);
-  background:var(--surface-2); border-left:3px solid var(--gold); padding:8px 12px;
-  border-radius:0 3px 3px 0}
-.sample-note b{color:var(--gold); font-family:var(--font-display); letter-spacing:.1em;
-  font-size:11px; white-space:nowrap}
-
-.syncbar{display:flex; gap:9px; align-items:center; font-size:12px; padding:8px 12px;
-  border-radius:0 3px 3px 0; line-height:1.45}
-.syncbar b{font-family:var(--font-display); letter-spacing:.1em; font-size:11px; white-space:nowrap}
-.syncbar.pending{background:var(--surface-2); border-left:3px solid var(--steel); color:var(--ink-2)}
-.syncbar.pending b{color:var(--steel)}
-.syncbar.off{background:var(--surface-2); border-left:3px solid var(--accent); color:var(--ink-2)}
-.syncbar.off b{color:var(--accent)}
-.syncbar button{margin-left:auto; flex:none; background:var(--surface); border:1px solid var(--line-2);
-  border-radius:3px; padding:4px 10px; font-size:12px; color:var(--ink-2)}
-
-/* ── 今日のメニュー ─────────────────────── */
-.menu{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--accent);
-  border-radius:0 0 3px 3px; box-shadow:var(--shadow); overflow:hidden}
-.menu-top{display:flex; align-items:center; gap:10px; padding:13px 14px 11px}
-.daybadge{flex:none; width:46px; height:46px; border-radius:2px; background:var(--ink);
-  color:var(--ground); display:flex; flex-direction:column; align-items:center;
-  justify-content:center; line-height:1}
-.daybadge b{font-family:var(--font-display); font-weight:600; font-size:22px}
-.daybadge i{font-style:normal; font-size:8.5px; letter-spacing:.14em; opacity:.72;
-  font-family:var(--font-display); margin-top:2px}
-.menu-title{flex:1; min-width:0}
-.menu-title h2{font-family:var(--font-display); font-weight:600; font-size:21px;
-  letter-spacing:.01em; line-height:1.15}
-.menu-title p{margin:3px 0 0; font-size:11.5px; color:var(--ink-3); line-height:1.45}
-.shift{display:flex; gap:4px; flex:none}
-.shift button{width:30px; height:30px; border-radius:2px; background:var(--surface-2);
-  border:1px solid var(--line-2); color:var(--ink-3); font-size:13px; line-height:1;
-  display:flex; align-items:center; justify-content:center}
-
-.bar{height:4px; background:var(--surface-2); display:flex}
-.bar i{display:block; background:var(--accent); transition:width .3s}
-@media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
-
-.menu-list{display:flex; flex-direction:column; gap:1px; background:var(--line)}
-.mi{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:10px;
-  background:var(--surface); border:none; width:100%; text-align:left; padding:10px 14px}
-.mi[aria-current="true"]{background:var(--surface-2); box-shadow:inset 3px 0 0 var(--accent)}
-.mi.done .name{color:var(--ink-3); text-decoration:line-through;
-  text-decoration-color:var(--ink-3); text-decoration-thickness:1px}
-.tick{width:19px; height:19px; border-radius:50%; border:1.5px solid var(--line-2);
-  display:flex; align-items:center; justify-content:center; font-size:11px; color:transparent}
-.mi.done .tick{background:var(--grass); border-color:var(--grass); color:#fff}
-.mi.part .tick{border-color:var(--accent); color:var(--accent); font-size:9px}
-.mi .name{font-size:14px; line-height:1.35; overflow-wrap:anywhere}
-.mi .note{display:block; font-size:11px; color:var(--ink-3); line-height:1.4; margin-top:1px}
-.mi .target{font-family:var(--font-display); font-weight:500; font-size:12.5px;
-  font-variant-numeric:tabular-nums; color:var(--ink-3); white-space:nowrap; text-align:right}
-.mi .target b{display:block; color:var(--ink-2); font-size:13.5px}
-.menu-foot{background:var(--surface); padding:9px 14px; font-size:11px; color:var(--ink-3);
-  border-top:1px solid var(--line)}
-
-/* ── 種目 ───────────────────────────────── */
-.rail{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-inline:-16px;
-  padding-inline:16px; scrollbar-width:thin}
-.chip{flex:none; background:var(--surface); border:1px solid var(--line-2); color:var(--ink-2);
-  border-radius:999px; padding:6px 14px; font-size:13.5px; white-space:nowrap}
-.chip[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--ground);
-  font-weight:500}
-.chip.add{border-style:dashed; color:var(--ink-3)}
-.disclose{background:none; border:none; padding:0; font-size:12px; color:var(--ink-3);
-  display:flex; align-items:center; gap:5px}
-
-/* ── 記録カード ─────────────────────────── */
-.deck{background:var(--surface); border:1px solid var(--line); border-radius:3px;
-  box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:14px}
-.deck-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
-.deck-head h2{font-family:var(--font-display); font-weight:500; font-size:19px;
-  letter-spacing:.01em; overflow-wrap:anywhere}
-
-.dials{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-.dial{background:var(--surface-2); border-radius:3px; padding:10px; display:flex;
-  flex-direction:column; align-items:center; gap:6px}
-.dial .k{font-size:10.5px; letter-spacing:.12em; color:var(--ink-3);
-  font-family:var(--font-display); text-transform:uppercase}
-.dial .readout{font-family:var(--font-display); font-weight:300; font-size:46px; line-height:1;
-  font-variant-numeric:tabular-nums; letter-spacing:-.01em}
-.dial .readout u{text-decoration:none; font-size:15px; font-weight:500; color:var(--ink-3);
-  margin-left:3px}
-.steps{display:flex; gap:6px; width:100%}
-.steps button{flex:1; background:var(--raise); border:1px solid var(--line-2); border-radius:3px;
-  padding:9px 0; font-family:var(--font-display); font-weight:500; font-size:14px;
-  font-variant-numeric:tabular-nums; color:var(--ink-2); min-height:42px}
-.steps button:active{background:var(--ink); color:var(--ground); border-color:var(--ink)}
-
-.log-btn{width:100%; background:var(--accent); color:#fff; border:none; border-radius:3px;
-  padding:16px; font-family:var(--font-display); font-weight:600; font-size:19px;
-  letter-spacing:.06em; min-height:56px}
-.log-btn:active{transform:translateY(1px)}
-
-/* ── プレート ───────────────────────────── */
-.plates{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  border-top:1px dashed var(--line-2); padding-top:12px}
-.plates .k{font-size:11px; color:var(--ink-3); font-family:var(--font-display);
-  letter-spacing:.1em; flex:none}
-.stack{display:flex; align-items:center; gap:3px; flex-wrap:wrap}
-.plate{font-family:var(--font-display); font-weight:600; font-size:11px;
-  font-variant-numeric:tabular-nums; padding:3px 7px; border-radius:2px; color:#fff;
-  border:1px solid rgba(0,0,0,.25)}
-.p25{background:#c8202b} .p20{background:#1f5fbf} .p15{background:#d8b400; color:#2a2d33}
-.p10{background:#2c7a41} .p5{background:#f2f3f4; color:var(--plate-white-ink); border-color:#a8adb3}
-.p2{background:#2a2d33} .p1{background:#9aa3ad}
-.plates .rem{font-size:11.5px; color:var(--accent)}
-.barsel{margin-left:auto; font:inherit; font-size:12px; background:var(--surface-2);
-  color:var(--ink-2); border:1px solid var(--line-2); border-radius:3px; padding:3px 6px}
-
-/* ── 前回 ───────────────────────────────── */
-.lastcard{display:flex; flex-direction:column; gap:8px; background:var(--surface);
-  border:1px solid var(--line); border-left:3px solid var(--steel); border-radius:0 3px 3px 0;
-  padding:12px 14px}
-.lastcard .top{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
-.lastcard .when{font-size:12px; color:var(--ink-3)}
-.setline{display:flex; gap:6px; flex-wrap:wrap}
-.setpill{font-family:var(--font-display); font-weight:500; font-size:13px;
-  font-variant-numeric:tabular-nums; background:var(--surface-2); border:1px solid var(--line);
-  border-radius:2px; padding:3px 8px; color:var(--ink-2)}
-.delta{font-family:var(--font-display); font-weight:600; font-size:13px; letter-spacing:.03em;
-  font-variant-numeric:tabular-nums; white-space:nowrap}
-.up{color:var(--grass)} .down{color:var(--accent)} .flat{color:var(--ink-3)}
-
-/* ── 今日のセット ───────────────────────── */
-.today-list{display:flex; flex-direction:column; gap:1px; background:var(--line);
-  border:1px solid var(--line); border-radius:3px; overflow:hidden}
-.row{display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px;
-  background:var(--surface); padding:9px 12px}
-.row .i{font-family:var(--font-display); font-size:11px; color:var(--ink-3); width:22px;
-  font-variant-numeric:tabular-nums}
-.row .ex{font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.row .wr{font-family:var(--font-display); font-weight:500; font-size:15px;
-  font-variant-numeric:tabular-nums; white-space:nowrap}
-.row .wr u{text-decoration:none; font-size:11px; color:var(--ink-3)}
-.row .del{background:none; border:none; color:var(--ink-3); font-size:16px; line-height:1;
-  padding:4px 2px; min-width:28px}
-.row .del:hover{color:var(--accent)}
-.empty{background:var(--surface); border:1px dashed var(--line-2); border-radius:3px;
-  padding:18px; text-align:center; color:var(--ink-3); font-size:13px}
-
-/* ── 推移 ───────────────────────────────── */
-.chartbox{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px}
-.chartbox .top{display:flex; justify-content:space-between; align-items:baseline;
-  gap:10px; margin-bottom:6px}
-svg.spark{display:block; width:100%; height:auto; max-width:100%; overflow:visible}
-.spark .grid{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
-.spark .line{fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round;
-  stroke-linecap:round}
-.spark .area{fill:var(--accent); opacity:.09; stroke:none}
-.spark .dot{fill:var(--surface); stroke:var(--accent); stroke-width:2}
-.spark .dot.last{fill:var(--accent)}
-.spark text{font-family:var(--font-display); font-size:10px; fill:var(--ink-3);
-  font-variant-numeric:tabular-nums}
-.spark text.val{fill:var(--ink); font-weight:600; font-size:11px}
-.foot-note{font-size:11.5px; color:var(--ink-3); margin-top:8px}
-
-/* ── 卒業判定 ───────────────────────────── */
-.grad{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px;
-  display:flex; flex-direction:column; gap:10px}
-.grad .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
-.gauge{height:8px; background:var(--surface-2); border-radius:2px; overflow:hidden}
-.gauge i{display:block; height:100%; background:var(--steel)}
-.gauge i.hit{background:var(--grass)}
-.crit{display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--ink-2);
-  line-height:1.5}
-.crit .mk{font-family:var(--font-display); font-weight:600; font-size:13px; flex:none;
-  width:16px; text-align:center}
-
-/* ── 週間ボリューム ─────────────────────── */
-.vol{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px;
-  display:flex; flex-direction:column; gap:11px}
-.vol .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
-.vrow{display:grid; grid-template-columns:44px 1fr 52px; align-items:center; gap:9px}
-.vrow .mgn{font-size:12.5px; color:var(--ink-2)}
-.vrow .track{position:relative; height:14px; background:var(--surface-2); border-radius:2px}
-.vrow .band{position:absolute; top:0; bottom:0; left:33.33%; width:33.33%;
-  background:var(--line); opacity:.9}
-.vrow .fill{position:absolute; top:2px; bottom:2px; left:0; background:var(--steel);
-  border-radius:1px}
-.vrow .fill.low{background:var(--gold)}
-.vrow .fill.over{background:var(--accent)}
-.vrow .vn{font-family:var(--font-display); font-weight:500; font-size:13px; text-align:right;
-  font-variant-numeric:tabular-nums; color:var(--ink-2)}
-.vrow .vn u{text-decoration:none; font-size:10px; color:var(--ink-3)}
-.vrow.sub{margin-top:-5px}
-.vrow.sub .mgn{font-size:11.5px; color:var(--ink-3)}
-.vrow.sub .track{height:9px}
-.vrow.sub .vn{font-size:12px; color:var(--ink-3)}
-.vrow .fill.up{background:var(--grass)}
-.vsub{grid-column:1/-1; font-size:11px; color:var(--ink-3); margin:-4px 0 3px 53px; line-height:1.5}
-.vscale{display:grid; grid-template-columns:44px 1fr 52px; gap:9px; font-family:var(--font-display);
-  font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums}
-.vscale span{display:flex; justify-content:space-between}
-
-/* ── 履歴 ───────────────────────────────── */
-.day{border-top:1px solid var(--line)}
-.day:first-child{border-top:none}
-.day-head{width:100%; background:none; border:none; display:flex; align-items:baseline;
-  justify-content:space-between; gap:10px; padding:11px 2px; text-align:left}
-.day-head .d{font-family:var(--font-display); font-weight:500; font-size:15px;
-  font-variant-numeric:tabular-nums}
-.day-head .s{font-size:11.5px; color:var(--ink-3); white-space:nowrap}
-.day-body{padding:0 2px 12px; display:flex; flex-direction:column; gap:7px}
-.dgrp{display:grid; grid-template-columns:minmax(88px,auto) 1fr; gap:8px; align-items:baseline}
-.dgrp .n{font-size:12.5px; color:var(--ink-2)}
-.hist-wrap{background:var(--surface); border:1px solid var(--line); border-radius:3px;
-  padding:2px 14px}
-
-/* ── 設定 ───────────────────────────────── */
-.settings{background:var(--surface); border:1px solid var(--line); border-radius:3px;
-  padding:14px; display:flex; flex-direction:column; gap:12px}
-.seg{display:flex; gap:1px; background:var(--line); border:1px solid var(--line);
-  border-radius:2px; overflow:hidden}
-.seg button{flex:1; background:var(--surface); border:none; padding:9px 6px; font-size:13px;
-  color:var(--ink-3); line-height:1.3}
-.seg button[aria-pressed="true"]{background:var(--ink); color:var(--ground); font-weight:500}
-.seg button small{display:block; font-size:10px; opacity:.7}
-.field{display:flex; align-items:center; justify-content:space-between; gap:12px}
-.field label{font-size:13px; color:var(--ink-2)}
-.field input{width:96px; font:inherit; font-family:var(--font-display); font-weight:500;
-  font-size:16px; text-align:right; font-variant-numeric:tabular-nums;
-  background:var(--surface-2); color:var(--ink); border:1px solid var(--line-2);
-  border-radius:3px; padding:6px 9px}
-
-@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
-@media (max-width:400px){
-  .tally .v{font-size:22px}
-  .dial .readout{font-size:40px}
-  .menu-title h2{font-size:18px}
-}
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
@@ -325,984 +30,258 @@ svg.spark{display:block; width:100%; height:auto; max-width:100%; overflow:visib
 
   <div class="syncbar" id="syncBar" hidden></div>
 
-  <section class="menu" aria-labelledby="menuTitle">
-    <div class="menu-top">
-      <div class="daybadge"><b id="dayNo">1</b><i>DAY</i></div>
-      <div class="menu-title">
-        <h2 id="menuTitle">胸</h2>
-        <p id="menuAim"></p>
-      </div>
-      <div class="shift">
-        <button type="button" id="dayPrev" aria-label="前の日のメニューにする">◀</button>
-        <button type="button" id="dayNext" aria-label="次の日のメニューにする">▶</button>
-      </div>
-    </div>
-    <div class="bar"><i id="menuBar" style="width:0%"></i></div>
-    <div class="menu-list" id="menuList"></div>
-    <div class="menu-foot" id="menuFoot"></div>
-  </section>
+  <!-- ══════════ 今日 ══════════ -->
+  <section class="view" id="viewToday">
 
-  <div class="tally" id="tally"></div>
-
-  <div class="sample-note" id="sampleNote" hidden>
-    <b>サンプル</b><span>これは表示確認用のダミーです。最初のセットを記録した瞬間に全部消えます。</span>
-  </div>
-
-  <section class="deck">
-    <div class="deck-head">
-      <h2 id="deckEx">ベンチプレス</h2>
-      <div class="num" id="deckE1rm" style="font-size:13px;color:var(--ink-3)"></div>
-    </div>
-
-    <div class="dials">
-      <div class="dial">
-        <div class="k">Weight</div>
-        <div class="readout" id="wOut">60<u>kg</u></div>
-        <div class="steps">
-          <button type="button" id="wMinus5">−5</button>
-          <button type="button" id="wMinus">−2.5</button>
-          <button type="button" id="wPlus">+2.5</button>
-          <button type="button" id="wPlus5">+5</button>
+    <section class="menu" aria-labelledby="menuTitle">
+      <div class="menu-top">
+        <div class="daybadge"><b id="dayNo">1</b><i>DAY</i></div>
+        <div class="menu-title">
+          <h2 id="menuTitle">胸</h2>
+          <p id="menuAim"></p>
+        </div>
+        <div class="shift">
+          <button type="button" id="dayPrev" aria-label="前の日のメニューにする">◀</button>
+          <button type="button" id="dayNext" aria-label="次の日のメニューにする">▶</button>
         </div>
       </div>
-      <div class="dial">
-        <div class="k">Reps</div>
-        <div class="readout" id="rOut">8<u>回</u></div>
-        <div class="steps">
-          <button type="button" id="rMinus">−1</button>
-          <button type="button" id="rPlus">+1</button>
+      <div class="bar"><i id="menuBar" style="width:0%"></i></div>
+      <div class="menu-list" id="menuList"></div>
+      <div class="menu-foot" id="menuFoot"></div>
+    </section>
+
+    <div class="tally" id="tally"></div>
+
+    <div class="sample-note" id="sampleNote" hidden>
+      <b>サンプル</b><span id="sampleText"></span>
+    </div>
+
+    <section class="deck">
+      <div class="deck-head">
+        <h2 id="deckEx">ベンチプレス</h2>
+        <div class="num" id="deckE1rm" style="font-size:13px;color:var(--ink-3)"></div>
+      </div>
+
+      <div class="rec" id="recBox"></div>
+
+      <div class="dials">
+        <div class="dial">
+          <div class="k">Weight <span class="unitnote" id="wUnit"></span></div>
+          <button type="button" class="readout readbtn" id="wOut"
+            aria-label="重量を直接入力する">60<u>kg</u></button>
+          <div class="steps" id="wSteps"></div>
+        </div>
+        <div class="dial">
+          <div class="k">Reps</div>
+          <button type="button" class="readout readbtn" id="rOut"
+            aria-label="回数を直接入力する">8<u>回</u></button>
+          <div class="steps">
+            <button type="button" id="rMinus">−1</button>
+            <button type="button" id="rPlus">+1</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <button type="button" class="log-btn" id="logBtn">セットを記録</button>
+      <button type="button" class="log-btn" id="logBtn">セットを記録</button>
 
-    <div class="plates">
-      <span class="k">片側</span>
-      <div class="stack" id="stack"></div>
-      <select class="barsel" id="barSel" aria-label="バーの重さ">
-        <option value="20">バー 20kg</option>
-        <option value="15">バー 15kg</option>
-        <option value="10">バー 10kg</option>
-        <option value="0">バーなし</option>
-      </select>
-    </div>
+      <div class="plates" id="platesRow">
+        <span class="k">片側</span>
+        <div class="stack" id="stack"></div>
+        <select class="barsel" id="barSel" aria-label="バーの重さ">
+          <option value="20">バー 20kg</option>
+          <option value="15">バー 15kg</option>
+          <option value="10">バー 10kg</option>
+          <option value="0">バーなし</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="lastcard" id="lastCard"></section>
+
+    <section>
+      <button type="button" class="disclose" id="otherToggle" aria-expanded="false"
+        style="margin-bottom:7px">▸ メニュー外の種目を選ぶ</button>
+      <div class="rail" id="rail" hidden></div>
+    </section>
+
+    <section>
+      <div class="eyebrow" style="margin-bottom:7px">今日のセット</div>
+      <div id="todayList"></div>
+    </section>
+
   </section>
 
-  <section class="lastcard" id="lastCard"></section>
+  <!-- ══════════ 積み上げ ══════════ -->
+  <section class="view" id="viewLedger" hidden>
 
-  <section>
-    <button type="button" class="disclose" id="otherToggle" aria-expanded="false"
-      style="margin-bottom:7px">▸ メニュー外の種目を選ぶ</button>
-    <div class="rail" id="rail" hidden></div>
+    <div class="eyebrow">積み上げ</div>
+    <div class="statgrid" id="stats"></div>
+
+    <section class="calbox">
+      <div class="calhead">
+        <button type="button" id="calPrev" aria-label="前の月">◀</button>
+        <div class="m" id="calMonth"></div>
+        <button type="button" id="calNext" aria-label="次の月">▶</button>
+      </div>
+      <div class="calgrid" id="calDow"></div>
+      <div class="calgrid" id="calGrid"></div>
+      <div class="calfoot" id="calFoot"></div>
+    </section>
+
+    <div id="calDay"></div>
+
+    <section class="barsbox">
+      <div class="top" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <div class="eyebrow">週ごとの総ボリューム</div>
+        <div class="num" id="barsNote" style="font-size:12px;color:var(--ink-3)"></div>
+      </div>
+      <div class="bars" id="bars"></div>
+      <div class="barslab" id="barsLab"></div>
+      <p class="foot-note" style="margin-top:8px">
+        総ボリューム＝ 重量 × 回数 の合計。自重種目は体重を足して数えている。
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow" style="margin-bottom:7px">履歴</div>
+      <div class="hist-wrap" id="hist"></div>
+    </section>
+
   </section>
 
-  <section>
-    <div class="eyebrow" style="margin-bottom:7px">今日のセット</div>
-    <div id="todayList"></div>
+  <!-- ══════════ 分析 ══════════ -->
+  <section class="view" id="viewStats" hidden>
+
+    <section class="chartbox">
+      <div class="top">
+        <div class="eyebrow">推定1RMの推移</div>
+        <div class="num" id="chartEx" style="font-size:12px;color:var(--ink-3)"></div>
+      </div>
+      <div id="chart"></div>
+      <div class="foot-note">推定1RM = 重量 ×（1 + 回数 ÷ 30）／ Epley式。各日の最高値をプロット。</div>
+    </section>
+
+    <section class="grad" id="lvBox"></section>
+
+    <section class="vol" id="volDone"></section>
+
+    <section class="vol" id="vol"></section>
+
+    <section class="grad" id="grad"></section>
+
   </section>
 
-  <section class="chartbox">
-    <div class="top">
-      <div class="eyebrow">推定1RMの推移</div>
-      <div class="num" id="chartEx" style="font-size:12px;color:var(--ink-3)"></div>
-    </div>
-    <div id="chart"></div>
-    <div class="foot-note">推定1RM = 重量 ×（1 + 回数 ÷ 30）／ Epley式。各日の最高値をプロット。</div>
-  </section>
+  <!-- ══════════ 設定 ══════════ -->
+  <section class="view" id="viewSetup" hidden>
 
-  <section class="vol" id="vol"></section>
+    <section class="settings">
+      <div class="eyebrow">プログラム</div>
+      <div class="seg" role="group" aria-label="プログラムのレベル">
+        <button type="button" id="lvBeginner" aria-pressed="true">初心者<small>7日で1周</small></button>
+        <button type="button" id="lvInter" aria-pressed="false">初中級<small>5分割</small></button>
+      </div>
+      <p class="foot-note" style="margin:0">
+        メニューは動画「男磨き完全版・ボディメイク編」の構成をそのまま組んだもの。
+        ローテーションは<b>カレンダーではなくジムに行った回数で進む</b>ので、行けなかった日があっても部位は飛ばない。
+      </p>
+    </section>
 
-  <section class="grad" id="grad"></section>
+    <section class="settings">
+      <div class="eyebrow">からだ</div>
+      <div class="field">
+        <label>体重<span class="sub">推奨重量と強さの判定に使う</span></label>
+        <button type="button" class="barsel" id="bwOut" style="font-size:15px;padding:7px 12px">70 kg</button>
+      </div>
+    </section>
 
-  <section>
-    <div class="eyebrow" style="margin-bottom:7px">履歴</div>
-    <div class="hist-wrap" id="hist"></div>
-  </section>
+    <section class="settings">
+      <div class="eyebrow">記録のしかた</div>
+      <div class="field">
+        <label for="tzSel">日付の切り替わり<span class="sub">何時をもって「次の日」にするか</span></label>
+        <select id="tzSel">
+          <option value="local">この端末の0時</option>
+          <option value="0">アクラ（UTC+0）の0時</option>
+          <option value="9">日本（UTC+9）の0時</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="restSel">インターバルタイマー<span class="sub">セットを記録したら自動で走る</span></label>
+        <select id="restSel">
+          <option value="auto">種目ごとの目安</option>
+          <option value="60">60秒</option>
+          <option value="90">90秒</option>
+          <option value="120">120秒</option>
+          <option value="180">180秒</option>
+          <option value="off">使わない</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="soundSel">タイマーの知らせ</label>
+        <select id="soundSel">
+          <option value="both">音＋バイブ</option>
+          <option value="vib">バイブだけ</option>
+          <option value="snd">音だけ</option>
+          <option value="off">鳴らさない</option>
+        </select>
+      </div>
+    </section>
 
-  <section class="settings">
-    <div class="eyebrow">設定</div>
-    <div class="seg" role="group" aria-label="プログラムのレベル">
-      <button type="button" id="lvBeginner" aria-pressed="true">初心者<small>7日で1周</small></button>
-      <button type="button" id="lvInter" aria-pressed="false">初中級<small>5分割</small></button>
-    </div>
-    <div class="field">
-      <label for="bwInput">体重（卒業判定に使う）</label>
-      <input type="number" id="bwInput" min="30" max="200" step="0.5" value="70" inputmode="decimal">
-    </div>
-    <p class="foot-note" style="margin:0">
-      メニューは動画「男磨き完全版・ボディメイク編」の構成をそのまま組んだもの。
-      ローテーションは<b>カレンダーではなくジムに行った回数で進む</b>ので、行けなかった日があっても部位は飛ばない。
-    </p>
+    <section class="settings">
+      <div class="eyebrow">データ</div>
+      <p class="foot-note" style="margin:0">
+        記録は<b>この端末の中だけ</b>にある。サーバへは一切送っていないので、
+        ブラウザのサイトデータを消すと一緒に消える。端末を変える前に書き出しておくこと。
+      </p>
+      <div class="field">
+        <label>書き出し／読み込み<span class="sub" id="dataCount"></span></label>
+        <span style="display:flex;gap:6px">
+          <button type="button" class="barsel" id="expBtn" style="padding:7px 12px">書き出す</button>
+          <button type="button" class="barsel" id="impBtn" style="padding:7px 12px">読み込む</button>
+        </span>
+      </div>
+      <button type="button" class="danger" id="wipeBtn">この端末の記録を全部消す</button>
+    </section>
+
+    <section class="settings">
+      <div class="eyebrow">強さの物差しについて</div>
+      <p class="foot-note" style="margin:0">
+        「推奨重量」と「強さ」は、<b>体重あたりの1RM</b>をもとにした一般的な目安（男性）。
+        ビッグ3は広く一致しているが、<b>補助種目の目安は出典によって幅が大きい</b>。
+        自分の記録が2回ぶん貯まった種目は、目安ではなく<b>自分の記録から</b>計算するようになる。
+        そっちのほうが当たる。
+      </p>
+    </section>
+
   </section>
 
 </div>
 
-<script>
-(function(){
-  "use strict";
+<nav class="tabbar" role="tablist" aria-label="画面">
+  <button type="button" class="tab" id="tabToday"  role="tab" aria-selected="true"><span class="g">▤</span><span class="l">今日</span></button>
+  <button type="button" class="tab" id="tabLedger" role="tab" aria-selected="false"><span class="g">▦</span><span class="l">積み上げ</span></button>
+  <button type="button" class="tab" id="tabStats"  role="tab" aria-selected="false"><span class="g">◈</span><span class="l">分析</span></button>
+  <button type="button" class="tab" id="tabSetup"  role="tab" aria-selected="false"><span class="g">⚙</span><span class="l">設定</span></button>
+</nav>
 
-  /* ─────────────────────────────────────────────────────────────
-     プログラム（動画「男磨き完全版・ボディメイク編」の構成）
-     初心者 : ベンチ週3を軸に7日で1周
-     初中級 : 5分割を回し続ける
-     ───────────────────────────────────────────────────────────── */
-  var PROGRAM = {
-    beginner: {
-      label: "初心者",
-      cycle: "7日で1周",
-      days: [
-        { name:"胸", aim:"ベンチの重量を伸ばしつつ、大胸筋上部を厚くする。上部が無いと胸は垂れて見える。",
-          items:[
-            {ex:"ベンチプレス", sets:3, lo:8, hi:10, note:"この種目の重量を伸ばすことが最優先"},
-            {ex:"インクラインベンチプレス", sets:4, lo:8, hi:10, note:"角度は30〜45度。60度以上は肩の前部に逃げる"},
-            {ex:"インクラインダンベルプレス", sets:3, lo:10, hi:12, note:"バーベルより深く下ろせる。上部の主力"},
-            {ex:"インクラインダンベルフライ", sets:2, lo:12, hi:15, note:"上部をストレッチで仕上げる"}
-          ]},
-        { name:"背中", aim:"縦引きで幅、横引きで厚み。この2方向を1日で揃える。",
-          items:[
-            {ex:"チンニング", sets:4, lo:2, hi:5, note:"縦引き＝幅の担当。潰れる1回手前で止め、セット数で総回数を稼ぐ"},
-            {ex:"ベントオーバーロー", sets:3, lo:8, hi:10, note:"背中の主力。広背筋＋僧帽筋＋脊柱起立筋を一度に取る"},
-            {ex:"ワンハンドダンベルロー", sets:3, lo:10, hi:12, note:"ベンチに片手片膝。肘を腰へ引く。片側ずつなので重量を伸ばしやすい"}
-          ]},
-        { name:"ベンチ＋肩", aim:"肩幅を広げて小顔に見せる。フロントが強くなればベンチも伸びる。",
-          items:[
-            {ex:"ベンチプレス", sets:3, lo:8, hi:10},
-            {ex:"スミスマシンショルダープレス", sets:3, lo:8, hi:10},
-            {ex:"サイドレイズ", sets:3, lo:15, hi:20, note:"軽い重量で丁寧に。重いと効かない"},
-            {ex:"リアレイズ", sets:3, lo:15, hi:20}
-          ]},
-        { name:"足", aim:"代謝を上げる。腰の位置を高く、足を長く見せる。",
-          items:[
-            {ex:"スクワット", sets:3, lo:15, hi:20, note:"低重量・高回数。太くしすぎない"},
-            {ex:"ブルガリアンスクワット", sets:3, lo:12, hi:15},
-            {ex:"レッグカール", sets:3, lo:12, hi:15},
-            {ex:"レッグエクステンション", sets:2, lo:12, hi:15}
-          ]},
-        { name:"ベンチ＋腕", aim:"ベンチ週3回目。腕はベンチの補助にもなる。",
-          items:[
-            {ex:"ベンチプレス", sets:3, lo:8, hi:10},
-            {ex:"バーベルアームカール", sets:3, lo:8, hi:12},
-            {ex:"インクラインダンベルカール", sets:2, lo:10, hi:12},
-            {ex:"ライイングエクステンション", sets:3, lo:10, hi:12},
-            {ex:"ケーブルプレスダウン", sets:2, lo:12, hi:15}
-          ]},
-        { name:"背中＋肩", aim:"週2回目の背中と肩。逆三角を固める。",
-          items:[
-            {ex:"チンニング", sets:4, lo:2, hi:5, note:"2回目の縦引き。ここも潰れる手前で止める"},
-            {ex:"チェストサポーテッドダンベルロー", sets:3, lo:12, hi:15, note:"インクラインベンチにうつ伏せ。腰が効かないので背中だけ追い込める"},
-            {ex:"サイドレイズ", sets:3, lo:15, hi:20},
-            {ex:"リアレイズ", sets:3, lo:15, hi:20}
-          ]},
-        { name:"腕＋ケツ", aim:"腕の2回目。ケツは高回数でヒップアップさせる。",
-          items:[
-            {ex:"バーベルアームカール", sets:3, lo:8, hi:12},
-            {ex:"ハンマーカール", sets:2, lo:10, hi:12, note:"上腕筋。正面から見た腕の太さが出る"},
-            {ex:"ケーブルプレスダウン", sets:3, lo:12, hi:15},
-            {ex:"ブルガリアンスクワット", sets:3, lo:12, hi:15},
-            {ex:"ヒップアブダクション", sets:3, lo:30, hi:50, note:"高回数・可動域広め"}
-          ]}
-      ]
-    },
-    inter: {
-      label: "初中級",
-      cycle: "5分割を回し続ける",
-      days: [
-        { name:"胸", aim:"上部の厚みと下部の輪郭。コンパウンド→ストレッチ→収縮で全角度に刺激。",
-          items:[
-            {ex:"ベンチプレス", sets:4, lo:6, hi:8},
-            {ex:"インクラインベンチプレス", sets:4, lo:8, hi:10, note:"角度は30〜45度。60度以上は肩に逃げる"},
-            {ex:"ディップス", sets:3, lo:8, hi:12, note:"下部の輪郭を作る"},
-            {ex:"インクラインダンベルフライ", sets:3, lo:12, hi:15, note:"ストレッチ種目"},
-            {ex:"ケーブルクロスオーバー", sets:3, lo:15, hi:20, note:"収縮種目。下から上へ引くと上部に乗る"}
-          ]},
-        { name:"背中", aim:"広背筋の上部・下部、大円筋、僧帽筋。ウエストから自然に広がる形にする。",
-          items:[
-            {ex:"チンニング", sets:4, lo:6, hi:12, note:"広背筋上部"},
-            {ex:"ベントオーバーロー", sets:4, lo:8, hi:10, note:"背中全体＋脊柱起立筋"},
-            {ex:"ワンハンドダンベルロー", sets:3, lo:10, hi:12, note:"可動域が広い。片側ずつ追い込む"},
-            {ex:"チェストサポーテッドダンベルロー", sets:3, lo:12, hi:15, note:"腰をゼロにして背中だけ取る"},
-            {ex:"ダンベルプルオーバー", sets:3, lo:12, hi:15, note:"大円筋。ストレッチ狙い"}
-          ]},
-        { name:"肩", aim:"フロント・サイド・リアを均等に。リアミドルまで入れて肩を丸く高く見せる。",
-          items:[
-            {ex:"ミリタリープレス", sets:4, lo:6, hi:8, note:"高重量で物理的に強い刺激"},
-            {ex:"ダンベルショルダープレス", sets:3, lo:10, hi:12, note:"丁寧に。左右差を潰す"},
-            {ex:"サイドレイズ", sets:4, lo:15, hi:20, note:"4〜6kgで十分。重いと効かない"},
-            {ex:"アップライトロー", sets:3, lo:12, hi:15, note:"サイドに強い刺激を入れる担当"},
-            {ex:"リアレイズ", sets:3, lo:15, hi:20},
-            {ex:"フェイスプル", sets:3, lo:15, hi:20, note:"リアミドル＝正面から見た肩幅"}
-          ]},
-        { name:"足", aim:"前腿は細かく、ハムとケツは重点的に。太くせず引き締める。",
-          items:[
-            {ex:"バーベルスクワット", sets:4, lo:15, hi:20, note:"低重量・高回数・伸ばしきらない"},
-            {ex:"ブルガリアンスクワット", sets:3, lo:12, hi:15, note:"ハム＋ケツ"},
-            {ex:"ルーマニアンデッドリフト", sets:3, lo:10, hi:12, note:"ハムストリングス"},
-            {ex:"レッグエクステンション", sets:3, lo:15, hi:20},
-            {ex:"レッグカール", sets:3, lo:12, hi:15},
-            {ex:"ヒップアブダクション", sets:3, lo:30, hi:50, note:"高回数でヒップアップ"}
-          ]},
-        { name:"腕", aim:"前腕・上腕二頭・上腕三頭をバランスよく。正面から見ても太い腕にする。",
-          items:[
-            {ex:"バーベルアームカール", sets:4, lo:8, hi:12},
-            {ex:"インクラインダンベルカール", sets:3, lo:10, hi:12},
-            {ex:"ハンマーカール", sets:3, lo:10, hi:12, note:"前腕＋上腕筋"},
-            {ex:"ライイングエクステンション", sets:3, lo:10, hi:12},
-            {ex:"ケーブルプレスダウン", sets:3, lo:12, hi:15}
-          ]}
-      ]
-    }
-  };
+<div class="restbar" id="restBar" hidden></div>
+<div class="toast" id="toast" hidden></div>
 
-  /* 種目 → 部位（先頭が主働筋。2つ目以降は補助として0.5セット換算） */
-  var MG = {
-    "ベンチプレス":["胸","三頭"], "インクラインベンチプレス":["胸","胸上部+","肩"],
-    "インクラインダンベルプレス":["胸","胸上部+","肩"],
-    "ダンベルプレス":["胸","三頭"], "ダンベルフライ":["胸"],
-    "ディップス":["胸","三頭"], "インクラインダンベルフライ":["胸","胸上部+"],
-    "ケーブルクロスオーバー":["胸","胸上部+"],
-    "ワンハンドダンベルロー":["背中","二頭"], "チェストサポーテッドダンベルロー":["背中","二頭"],
-    "ダンベルプルオーバー":["背中"], "インバーテッドロー":["背中","二頭"],
-    "スミスマシンベントオーバーロー":["背中","二頭"], "バンドラットプルダウン":["背中","二頭"],
-    "チンニング":["背中","二頭"], "ラットプルダウン":["背中","二頭"],
-    "プーリーロー":["背中","二頭"], "ベントオーバーロー":["背中","二頭"],
-    "ケーブルプルオーバー":["背中"],
-    "スミスマシンショルダープレス":["肩","三頭"], "ミリタリープレス":["肩","三頭"],
-    "ダンベルショルダープレス":["肩","三頭"], "サイドレイズ":["肩"],
-    "インクラインサイドレイズ":["肩"], "リアレイズ":["肩"],
-    "アップライトロー":["肩"], "フェイスプル":["肩"],
-    "バーベルアームカール":["二頭"], "インクラインダンベルカール":["二頭"],
-    "ハンマーカール":["二頭"],
-    "ライイングエクステンション":["三頭"], "ケーブルプレスダウン":["三頭"],
-    "スクワット":["脚","尻"], "バーベルスクワット":["脚","尻"],
-    "ブルガリアンスクワット":["脚","尻"], "ルーマニアンデッドリフト":["脚","尻"],
-    "レッグカール":["脚"], "レッグエクステンション":["脚"], "レッグプレス":["脚","尻"],
-    "ヒップアブダクション":["尻"]
-  };
-  var MG_ORDER = ["胸","背中","肩","二頭","三頭","脚","尻"];
+<div class="sheet" id="padSheet" hidden role="dialog" aria-modal="true" aria-labelledby="padTitle">
+  <div class="sheetcard">
+    <div class="sh">
+      <h3 id="padTitle">重量</h3>
+      <button type="button" class="close" id="padClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="padout" id="padOut">0</div>
+    <div class="padhint" id="padHint"></div>
+    <div class="padquick" id="padQuick"></div>
+    <div class="padgrid" id="padGrid"></div>
+    <button type="button" class="padok" id="padOk">決定</button>
+  </div>
+</div>
 
-  /* 自重種目。入力した重量は「追加した重り」の意味になる */
-  var BW = {"チンニング":1, "ディップス":1, "インバーテッドロー":1};
-  function load(ex, w){ return (BW[ex] ? S.bw : 0) + w; }
-  function fmtW(ex, w){
-    if (!BW[ex]) return fmtN(w) + "kg";
-    return w > 0 ? "自重+" + fmtN(w) + "kg" : "自重";
-  }
-
-  var PLATES = [[25,"p25"],[20,"p20"],[15,"p15"],[10,"p10"],[5,"p5"],[2.5,"p2"],[1.25,"p1"]];
-
-  /* 端末内の保存庫。ここが本体で、サーバは同期先という位置づけ */
-  var LS = {
-    get:function(k, d){
-      try { var v = localStorage.getItem("ledger." + k); return v ? JSON.parse(v) : d; }
-      catch(e){ return d; }
-    },
-    set:function(k, v){
-      try { localStorage.setItem("ledger." + k, JSON.stringify(v)); return true; }
-      catch(e){ return false; }
-    }
-  };
-
-  var STANDALONE = true;   // GitHub Pages 版：保存先はこの端末だけ
-
-  var S = {
-    db:null, server:[], queue:[], sets:[], demo:[], live:false, primed:false,
-    custom:[], bar:20, level:"beginner", bw:70, offset:0,
-    ex:"ベンチプレス", w:60, r:8,
-    open:{}, showRail:false
-  };
-
-  /* ── 日付・計算 ── */
-  function ymd(ms){ return new Date(ms).toISOString().slice(0,10); }
-  function today(){ return ymd(Date.now()); }
-  function fmtDay(d){
-    var p = d.split("-");
-    var wd = ["日","月","火","水","木","金","土"][new Date(d+"T12:00:00Z").getUTCDay()];
-    return p[1].replace(/^0/,"") + "/" + p[2] + "（" + wd + "）";
-  }
-  function e1rm(w,r){ return w * (1 + r/30); }
-  function round1(n){ return Math.round(n*10)/10; }
-  function fmtN(n){ return (Math.round(n*10)/10).toString(); }
-  function esc(s){
-    return String(s).replace(/[&<>"']/g, function(c){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-    });
-  }
-
-  /* 表示に使う実データ = サーバの記録 −（未送信の削除）＋（未送信の追加） */
-  function effective(){
-    var delIds = {}, haveTs = {}, out = [];
-    S.queue.forEach(function(op){ if (op.op === "del") delIds[op.id] = 1; });
-    S.server.forEach(function(r){
-      if (delIds[r.id]) return;
-      haveTs[r.ts] = 1; out.push(r);
-    });
-    S.queue.forEach(function(op){
-      if (op.op !== "add" || haveTs[op.ts]) return;
-      out.push({id:op.cid, ts:op.ts, date:op.date, ex:op.ex, w:op.w, r:op.r, pending:true});
-    });
-    return out;
-  }
-  function rows(){ return S.live ? S.sets : S.demo; }
-  function refresh(){ S.sets = effective(); S.live = S.sets.length > 0; }
-  function prog(){ return PROGRAM[S.level]; }
-
-  /* トレーニングした日（昇順） */
-  function trainedDays(){
-    var seen = {};
-    rows().forEach(function(s){ seen[s.date] = 1; });
-    return Object.keys(seen).sort();
-  }
-  /* 今日のメニュー = 「今日より前にジムへ行った回数」で決まる（＋手動オフセット） */
-  function dayIndex(){
-    var t = today();
-    var before = trainedDays().filter(function(d){ return d < t; }).length;
-    var n = prog().days.length;
-    return (((before + S.offset) % n) + n) % n;
-  }
-  function menuDay(){ return prog().days[dayIndex()]; }
-
-  /* 連続日数（今日 or 昨日を起点に遡る） */
-  function streak(){
-    var days = trainedDays();
-    if (!days.length) return 0;
-    var set = {}; days.forEach(function(d){ set[d] = 1; });
-    var cur = Date.now();
-    if (!set[ymd(cur)]) cur -= 86400000;          // 今日まだなら昨日から数える
-    if (!set[ymd(cur)]) return 0;
-    var n = 0;
-    while (set[ymd(cur)]){ n++; cur -= 86400000; }
-    return n;
-  }
-
-  function setsTodayFor(ex){
-    var t = today(), n = 0;
-    rows().forEach(function(s){ if (s.date === t && s.ex === ex) n++; });
-    return n;
-  }
-
-  /* ── サンプルデータ ── */
-  function buildDemo(){
-    var out = [], i = 0;
-    function day(back){ return ymd(Date.now() - back*86400000); }
-    function add(d, ex, w, r, n){
-      for (var k=0; k<(n||1); k++){
-        out.push({id:"demo-"+i, ts:Date.parse(d+"T17:0"+(i%6)+":00Z"), date:d, ex:ex, w:w, r:r, demo:true});
-        i++;
-      }
-    }
-    add(day(16),"ベンチプレス",55,8,3); add(day(16),"インクラインベンチプレス",40,10,3);
-    add(day(13),"チンニング",0,3,4);    add(day(13),"ベントオーバーロー",40,10,3);
-    add(day(9), "ベンチプレス",57.5,8,2); add(day(9),"ベンチプレス",57.5,6,1);
-    add(day(9), "スミスマシンショルダープレス",30,10,3); add(day(9),"サイドレイズ",5,18,3);
-    add(day(6), "スクワット",60,18,3);   add(day(6),"ブルガリアンスクワット",12,14,3);
-    add(day(3), "ベンチプレス",60,8,2);  add(day(3),"ベンチプレス",60,7,1);
-    add(day(3), "バーベルアームカール",25,10,3);
-    add(day(1), "チンニング",0,4,4);     add(day(1),"ワンハンドダンベルロー",20,12,3);
-    add(day(1), "バーベルアームカール",27.5,10,3);
-    add(day(0), "ベンチプレス",62.5,8,2);
-    return out;
-  }
-
-  /* ── 描画 ── */
-  function renderClock(){
-    var now = new Date();
-    var gh = now.toISOString().slice(11,16);
-    var jp = new Date(now.getTime()+9*3600000).toISOString().slice(11,16);
-    document.getElementById("clock").innerHTML =
-      "<b>" + fmtDay(today()) + "</b><br>アクラ " + gh + " ／ 日本 " + jp;
-  }
-
-  function renderTally(){
-    var t = today(), vol = 0, sets = 0;
-    rows().forEach(function(s){ if (s.date === t){ vol += load(s.ex, s.w) * s.r; sets++; } });
-    document.getElementById("tally").innerHTML =
-      tile(vol >= 10000 ? fmtN(vol/1000) : Math.round(vol).toLocaleString(),
-           vol >= 10000 ? "t" : "kg", "総ボリューム") +
-      tile(sets, "本", "セット数") +
-      tile(streak(), "日", "連続");
-    document.getElementById("sampleNote").hidden = S.live;
-  }
-  function tile(v, unit, k){
-    return '<div><div class="v">' + v + '<span>' + unit + '</span></div><div class="k">' + k + '</div></div>';
-  }
-
-  function renderMenu(){
-    var d = menuDay(), idx = dayIndex();
-    document.getElementById("dayNo").textContent = (idx + 1);
-    document.getElementById("menuTitle").textContent = d.name;
-    document.getElementById("menuAim").textContent = d.aim;
-
-    var listEl = document.getElementById("menuList");
-    listEl.innerHTML = "";
-    var doneSets = 0, totalSets = 0;
-
-    d.items.forEach(function(it){
-      var done = setsTodayFor(it.ex);
-      doneSets += Math.min(done, it.sets); totalSets += it.sets;
-
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "mi" + (done >= it.sets ? " done" : (done > 0 ? " part" : ""));
-      if (it.ex === S.ex) b.setAttribute("aria-current", "true");
-      b.innerHTML =
-        '<span class="tick" aria-hidden="true">' + (done >= it.sets ? "✓" : (done > 0 ? "●" : "")) + '</span>' +
-        '<span class="name">' + esc(it.ex) +
-          (it.note ? '<span class="note">' + esc(it.note) + '</span>' : '') + '</span>' +
-        '<span class="target"><b>' + done + ' / ' + it.sets + '</b>' + it.lo + '〜' + it.hi + '回</span>';
-      b.addEventListener("click", function(){ pick(it); });
-      listEl.appendChild(b);
-    });
-
-    var pct = totalSets ? Math.round(doneSets / totalSets * 100) : 0;
-    document.getElementById("menuBar").style.width = pct + "%";
-    document.getElementById("menuFoot").textContent =
-      prog().label + "・" + prog().cycle + " ／ 今日 " + doneSets + " / " + totalSets +
-      " セット（目安 " + Math.round(totalSets * 2.5) + "分・" + pct + "%）" +
-      (pct >= 100 ? " — 完了。明日は Day " +
-        (((dayIndex() + 1) % prog().days.length) + 1) + "。" : "");
-  }
-
-  function pick(it, scroll){
-    S.ex = it.ex;
-    var ss = sessionsFor(it.ex);
-    if (ss.length){
-      var last = ss[ss.length - 1];
-      var top = last.sets.slice().sort(function(a,b){
-        return e1rm(load(b.ex,b.w),b.r) - e1rm(load(a.ex,a.w),a.r); })[0];
-      S.w = top.w; S.r = top.r;
-    } else {
-      S.r = Math.round((it.lo + it.hi) / 2);
-    }
-    render();
-    if (scroll !== false){
-      document.getElementById("logBtn").scrollIntoView({block:"center", behavior:"smooth"});
-    }
-  }
-
-  function renderRail(){
-    var rail = document.getElementById("rail");
-    rail.hidden = !S.showRail;
-    document.getElementById("otherToggle").setAttribute("aria-expanded", S.showRail ? "true" : "false");
-    document.getElementById("otherToggle").textContent =
-      (S.showRail ? "▾" : "▸") + " メニュー外の種目を選ぶ";
-    if (!S.showRail) return;
-
-    var seen = {}, all = [];
-    PROGRAM.beginner.days.concat(PROGRAM.inter.days).forEach(function(d){
-      d.items.forEach(function(it){ if (!seen[it.ex]){ seen[it.ex] = 1; all.push(it.ex); } });
-    });
-    S.custom.concat(rows().map(function(s){ return s.ex; })).forEach(function(e){
-      if (!seen[e]){ seen[e] = 1; all.push(e); }
-    });
-
-    rail.innerHTML = "";
-    all.forEach(function(e){
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "chip"; b.textContent = e;
-      b.setAttribute("aria-pressed", e === S.ex ? "true" : "false");
-      b.addEventListener("click", function(){ pick({ex:e, lo:8, hi:12}); });
-      rail.appendChild(b);
-    });
-    var add = document.createElement("button");
-    add.type = "button"; add.className = "chip add"; add.textContent = "＋ 種目を足す";
-    add.addEventListener("click", addExercise);
-    rail.appendChild(add);
-  }
-
-  function renderDeck(){
-    document.getElementById("deckEx").textContent = S.ex;
-    document.getElementById("deckE1rm").textContent =
-      "推定1RM " + fmtN(e1rm(load(S.ex, S.w), S.r)) + "kg";
-    document.getElementById("wOut").innerHTML = BW[S.ex]
-      ? (S.w > 0 ? fmtN(S.w) + "<u>kg追加</u>" : '<span style="font-size:30px">自重</span>')
-      : fmtN(S.w) + "<u>kg</u>";
-    document.getElementById("rOut").innerHTML = S.r + "<u>回</u>";
-    document.getElementById("barSel").value = String(S.bar);
-    renderPlates();
-  }
-
-  function renderPlates(){
-    var box = document.getElementById("stack");
-    box.innerHTML = "";
-    if (S.bar === 0){ box.innerHTML = '<span class="rem">ダンベル／マシン（プレート計算なし）</span>'; return; }
-    var perSide = (S.w - S.bar) / 2;
-    if (perSide < 0){ box.innerHTML = '<span class="rem">バーより軽い（' + fmtN(S.bar) + 'kg 未満）</span>'; return; }
-    if (perSide === 0){ box.innerHTML = '<span class="rem">バーのみ</span>'; return; }
-    var left = perSide;
-    PLATES.forEach(function(p){
-      var n = Math.floor((left + 1e-9) / p[0]);
-      if (n <= 0) return;
-      left = round1(left - n * p[0]);
-      for (var k = 0; k < n; k++){
-        var el = document.createElement("span");
-        el.className = "plate " + p[1]; el.textContent = fmtN(p[0]);
-        box.appendChild(el);
-      }
-    });
-    if (left > 0.01){
-      var r = document.createElement("span");
-      r.className = "rem"; r.textContent = "＋端数 " + fmtN(left) + "kg（プレートで組めない）";
-      box.appendChild(r);
-    }
-  }
-
-  function sessionsFor(ex){
-    var byDay = {};
-    rows().forEach(function(s){ if (s.ex === ex) (byDay[s.date] = byDay[s.date] || []).push(s); });
-    return Object.keys(byDay).sort().map(function(d){
-      var list = byDay[d].slice().sort(function(a,b){ return a.ts - b.ts; });
-      var best = 0;
-      list.forEach(function(s){ best = Math.max(best, e1rm(load(s.ex, s.w), s.r)); });
-      return {date:d, sets:list, best:best};
-    });
-  }
-
-  function renderLast(){
-    var ss = sessionsFor(S.ex), t = today(), prev = null, cur = null;
-    for (var i = ss.length - 1; i >= 0; i--){ if (ss[i].date !== t){ prev = ss[i]; break; } }
-    ss.forEach(function(s){ if (s.date === t) cur = s; });
-    var card = document.getElementById("lastCard");
-    if (!prev){
-      card.innerHTML = '<div class="top"><strong>前回の' + esc(S.ex) + '</strong></div>' +
-        '<div class="when">記録なし。ここが初回の基準になる。</div>';
-      return;
-    }
-    var d = cur ? cur.best - prev.best : 0;
-    var cls = !cur ? "flat" : (d > 0.05 ? "up" : (d < -0.05 ? "down" : "flat"));
-    var badge = !cur ? "今日はまだ" : (d > 0.05 ? "▲ +" + fmtN(d) + "kg" : (d < -0.05 ? "▼ " + fmtN(d) + "kg" : "＝ 同値"));
-    card.innerHTML =
-      '<div class="top"><strong>前回の' + esc(S.ex) + '</strong><span class="delta ' + cls + '">' + badge + '</span></div>' +
-      '<div class="when">' + fmtDay(prev.date) + ' ・ 推定1RM ' + fmtN(prev.best) + 'kg</div>' +
-      '<div class="setline">' + prev.sets.map(function(s){
-        return '<span class="setpill">' + fmtW(s.ex, s.w) + '×' + s.r + '</span>';
-      }).join("") + '</div>';
-  }
-
-  function renderToday(){
-    var t = today();
-    var list = rows().filter(function(s){ return s.date === t; })
-                     .sort(function(a,b){ return b.ts - a.ts; });
-    var box = document.getElementById("todayList");
-    if (!list.length){
-      box.className = "empty";
-      box.textContent = "まだ0本。上のメニューから種目を選ぶと重量が入ります。";
-      return;
-    }
-    box.className = "today-list";
-    box.innerHTML = "";
-    list.forEach(function(s, idx){
-      var row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML =
-        '<span class="i">' + (list.length - idx) + '</span>' +
-        '<span class="ex">' + esc(s.ex) + '</span>' +
-        '<span class="wr">' + fmtW(s.ex, s.w) + ' × ' + s.r + '<u>回</u></span>';
-      var del = document.createElement("button");
-      del.type = "button"; del.className = "del"; del.textContent = "×";
-      del.setAttribute("aria-label", s.ex + " のセットを削除");
-      del.addEventListener("click", function(){ removeSet(s); });
-      row.appendChild(del);
-      box.appendChild(row);
-    });
-  }
-
-  function renderChart(){
-    var ss = sessionsFor(S.ex).slice(-12);
-    document.getElementById("chartEx").textContent = S.ex;
-    var box = document.getElementById("chart");
-    if (ss.length < 2){
-      box.innerHTML = '<div class="empty">' + (ss.length ? "2回目を記録すると線になります。" : "この種目はまだ記録がありません。") + '</div>';
-      return;
-    }
-    var W = 560, H = 150, PL = 34, PR = 46, PT = 16, PB = 24;
-    var vals = ss.map(function(s){ return s.best; });
-    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
-    if (max - min < 1){ max += 1; min = Math.max(0, min - 1); }
-    var pad = (max - min) * 0.18; min = Math.max(0, min - pad); max += pad;
-    var x = function(i){ return PL + (W - PL - PR) * (i / (ss.length - 1)); };
-    var y = function(v){ return PT + (H - PT - PB) * (1 - (v - min) / (max - min)); };
-    var pts = ss.map(function(s, i){ return x(i) + "," + y(s.best); });
-    var area = "M" + x(0) + "," + (H - PB) + " L" + pts.join(" L") + " L" + x(ss.length - 1) + "," + (H - PB) + " Z";
-
-    var svg = '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
-      esc(S.ex) + 'の推定1RM推移">';
-    [0, 0.5, 1].forEach(function(f){
-      var v = min + (max - min) * f;
-      svg += '<line class="grid" x1="' + PL + '" y1="' + y(v) + '" x2="' + (W - PR) + '" y2="' + y(v) + '"></line>';
-      svg += '<text x="' + (PL - 6) + '" y="' + (y(v) + 3.5) + '" text-anchor="end">' + fmtN(v) + '</text>';
-    });
-    svg += '<path class="area" d="' + area + '"></path>';
-    svg += '<polyline class="line" points="' + pts.join(" ") + '"></polyline>';
-    ss.forEach(function(s, i){
-      var last = i === ss.length - 1;
-      svg += '<circle class="dot' + (last ? " last" : "") + '" cx="' + x(i) + '" cy="' + y(s.best) + '" r="' + (last ? 4.5 : 3) + '"></circle>';
-    });
-    var lastS = ss[ss.length - 1];
-    svg += '<text class="val" x="' + (x(ss.length - 1) + 8) + '" y="' + (y(lastS.best) + 4) + '">' + fmtN(lastS.best) + 'kg</text>';
-    svg += '<text x="' + PL + '" y="' + (H - 6) + '" text-anchor="start">' + ss[0].date.slice(5).replace("-", "/") + '</text>';
-    svg += '<text x="' + (W - PR) + '" y="' + (H - 6) + '" text-anchor="end">' + lastS.date.slice(5).replace("-", "/") + '</text>';
-    svg += '</svg>';
-    box.innerHTML = svg;
-  }
-
-  /* プログラム上の週セット数。主働筋1.0・補助0.5で数え、周期日数から週あたりへ換算 */
-  function weeklyVolume(){
-    var days = prog().days, per = {}, total = 0;
-    MG_ORDER.forEach(function(m){ per[m] = 0; });
-    days.forEach(function(d){
-      d.items.forEach(function(it){
-        total += it.sets;
-        var mg = MG[it.ex] || [];
-        mg.forEach(function(raw, i){
-          var full = raw.charAt(raw.length - 1) === "+";
-          var m = full ? raw.slice(0, -1) : raw;
-          if (per[m] === undefined) per[m] = 0;
-          per[m] += it.sets * ((i === 0 || full) ? 1 : 0.5);
-        });
-      });
-    });
-    var k = 7 / days.length;
-    Object.keys(per).forEach(function(m){ per[m] = Math.round(per[m] * k * 2) / 2; });
-    return {per:per, total:Math.round(total * k), cycle:days.length};
-  }
-
-  function renderVolume(){
-    var v = weeklyVolume(), box = document.getElementById("vol");
-    var MAXV = 30;
-    var html = '<div class="head"><div class="eyebrow">週あたりのセット数</div>' +
-      '<div class="num" style="font-size:12px;color:var(--ink-3)">' + prog().label +
-      '・全' + v.total + 'セット/週</div></div>' +
-      '<div class="vscale"><span></span><span><i style="font-style:normal">0</i>' +
-      '<i style="font-style:normal">10</i><i style="font-style:normal">20</i>' +
-      '<i style="font-style:normal">30</i></span><span></span></div>';
-
-    MG_ORDER.forEach(function(m){
-      var n = v.per[m] || 0;
-      var cls = n < 10 ? "low" : (n > 20 ? "over" : "");
-      html += '<div class="vrow"><span class="mgn">' + m + '</span>' +
-        '<span class="track"><i class="band"></i>' +
-        '<i class="fill ' + cls + '" style="width:' + Math.min(100, n / MAXV * 100) + '%"></i></span>' +
-        '<span class="vn">' + n + '<u>set</u></span></div>';
-
-      if (m === "胸"){
-        var up = v.per["胸上部"] || 0;
-        var ratio = n ? Math.round(up / n * 100) : 0;
-        html += '<div class="vrow sub"><span class="mgn">└ 上部</span>' +
-          '<span class="track"><i class="band"></i>' +
-          '<i class="fill up" style="width:' + Math.min(100, up / MAXV * 100) + '%"></i></span>' +
-          '<span class="vn">' + up + '<u>set</u></span></div>' +
-          '<div class="vsub">インクライン系＝胸の <b>' + ratio + '%</b>。' +
-          (ratio < 35 ? '上部が薄い。インクラインを1セット足す。' : '上部とフラットのバランスは取れている。') +
-          '</div>';
-      }
-    });
-
-    html += '<p class="foot-note" style="margin:0">' +
-      'グレーの帯が目安レンジ <b>10〜20セット</b>。多関節種目は主働筋を1セット、補助の部位を0.5セットで数えている。' +
-      '<br>黄色＝少なすぎ／赤＝多すぎ。赤が出たら、その部位の単関節種目を1セット減らす。</p>';
-    box.innerHTML = html;
-  }
-
-  /* 動画の卒業基準：ベンチMAX＝体重＋20kg、かつ体重でメインセット（8回×3） */
-  function renderGrad(){
-    var box = document.getElementById("grad");
-    var target = S.bw + 20;
-    var ss = sessionsFor("ベンチプレス");
-    var best = 0;
-    ss.forEach(function(s){ best = Math.max(best, s.best); });
-    var mainOK = false, mainDay = "";
-    ss.forEach(function(s){
-      var n = 0;
-      s.sets.forEach(function(x){ if (x.w >= S.bw && x.r >= 8) n++; });
-      if (n >= 3){ mainOK = true; mainDay = s.date; }
-    });
-    var maxOK = best >= target;
-    var pct = Math.min(100, Math.round(best / target * 100));
-
-    box.innerHTML =
-      '<div class="head"><strong>初心者からの卒業判定</strong>' +
-        '<span class="delta ' + (maxOK && mainOK ? "up" : "flat") + '">' +
-        (maxOK && mainOK ? "条件クリア" : pct + "%") + '</span></div>' +
-      '<div class="gauge"><i class="' + (maxOK ? "hit" : "") + '" style="width:' + pct + '%"></i></div>' +
-      '<div class="crit"><span class="mk ' + (maxOK ? "up" : "flat") + '">' + (maxOK ? "✓" : "—") + '</span>' +
-        '<span>ベンチプレス推定MAX <b>' + fmtN(best) + 'kg</b> ／ 目標 <b>' + fmtN(target) +
-        'kg</b>（体重＋20kg）</span></div>' +
-      '<div class="crit"><span class="mk ' + (mainOK ? "up" : "flat") + '">' + (mainOK ? "✓" : "—") + '</span>' +
-        '<span>体重（' + fmtN(S.bw) + 'kg）で8回×3セット' +
-        (mainOK ? '　<b>達成：' + fmtDay(mainDay) + '</b>' : '　未達') + '</span></div>' +
-      '<p class="foot-note" style="margin:0">両方クリアしたら設定を「初中級」に切り替える。' +
-        (S.level === "inter" ? '（いまは初中級メニュー）' : '') + '</p>';
-  }
-
-  function renderHist(){
-    var byDay = {};
-    rows().forEach(function(s){ (byDay[s.date] = byDay[s.date] || []).push(s); });
-    var days = Object.keys(byDay).sort().reverse();
-    var box = document.getElementById("hist");
-    if (!days.length){ box.innerHTML = '<div class="empty" style="border:none">まだ何もありません。</div>'; return; }
-    box.innerHTML = "";
-    days.forEach(function(d, di){
-      var list = byDay[d], vol = 0, exs = {};
-      list.forEach(function(s){ vol += load(s.ex, s.w) * s.r; (exs[s.ex] = exs[s.ex] || []).push(s); });
-      var open = S.open[d] !== undefined ? S.open[d] : di === 0;
-
-      var wrap = document.createElement("div"); wrap.className = "day";
-      var head = document.createElement("button");
-      head.type = "button"; head.className = "day-head";
-      head.setAttribute("aria-expanded", open ? "true" : "false");
-      head.innerHTML = '<span class="d">' + fmtDay(d) + '</span>' +
-        '<span class="s">' + list.length + '本 ・ ' + Math.round(vol).toLocaleString() + 'kg ' +
-        (open ? "▾" : "▸") + '</span>';
-      head.addEventListener("click", function(){ S.open[d] = !open; renderHist(); });
-      wrap.appendChild(head);
-
-      if (open){
-        var body = document.createElement("div"); body.className = "day-body";
-        Object.keys(exs).forEach(function(e){
-          var g = document.createElement("div"); g.className = "dgrp";
-          g.innerHTML = '<span class="n">' + esc(e) + '</span><span class="setline">' +
-            exs[e].sort(function(a,b){ return a.ts - b.ts; }).map(function(s){
-              return '<span class="setpill">' + fmtW(s.ex, s.w) + '×' + s.r + '</span>';
-            }).join("") + '</span>';
-          body.appendChild(g);
-        });
-        wrap.appendChild(body);
-      }
-      box.appendChild(wrap);
-    });
-  }
-
-  function renderSettings(){
-    document.getElementById("lvBeginner").setAttribute("aria-pressed", S.level === "beginner" ? "true" : "false");
-    document.getElementById("lvInter").setAttribute("aria-pressed", S.level === "inter" ? "true" : "false");
-    var bw = document.getElementById("bwInput");
-    if (document.activeElement !== bw) bw.value = String(S.bw);
-  }
-
-  function render(){
-    renderClock(); renderMenu(); renderTally(); renderRail(); renderDeck();
-    renderLast(); renderToday(); renderChart(); renderVolume(); renderGrad();
-    renderHist(); renderSettings(); renderSync();
-  }
-
-  /* ── 操作 ── */
-  function setW(d){ S.w = Math.max(0, round1(S.w + d)); renderDeck(); }
-  function setR(d){ S.r = Math.max(1, S.r + d); renderDeck(); }
-
-  function addExercise(){
-    var name = window.prompt("種目名を入力（例：インクラインベンチ）");
-    if (!name) return;
-    name = name.trim().slice(0, 40);
-    if (!name) return;
-    if (S.custom.indexOf(name) === -1) S.custom.push(name);
-    S.ex = name;
-    saveMeta(); render();
-  }
-
-  /* 記録はまず端末に確定させる。サーバ送信は後追い（オフラインでも落ちない） */
-  function logSet(){
-    var now = Date.now();
-    S.queue.push({op:"add", cid:"q" + now, ts:now, date:ymd(now), ex:S.ex, w:S.w, r:S.r});
-    saveLocal();
-    flush();
-    refresh(); render();
-    var btn = document.getElementById("logBtn");
-    btn.textContent = "記録した";
-    setTimeout(function(){ btn.textContent = "セットを記録"; }, 900);
-  }
-
-  function removeSet(s){
-    if (s.demo){ S.demo = S.demo.filter(function(x){ return x.id !== s.id; }); render(); return; }
-    if (s.pending){
-      S.queue = S.queue.filter(function(op){ return op.cid !== s.id; });
-    } else {
-      S.queue.push({op:"del", cid:"q" + Date.now(), id:s.id});
-    }
-    saveLocal();
-    flush();
-    refresh(); render();
-  }
-
-  function saveLocal(){
-    var ok = LS.set("queue", S.queue);
-    LS.set("cache", S.server.slice(0, 5000));
-    if (!ok){
-      var bar = document.getElementById("syncBar");
-      bar.hidden = false; bar.className = "syncbar off";
-      bar.innerHTML = '<b>保存不可</b><span>この端末に書き込めません（プライベートモードか容量不足）。' +
-        'タブを閉じると今日の記録が消えます。</span>';
-    }
-  }
-
-  /* 未送信ぶんをサーバへ流す。失敗したものはキューに残す */
-  var flushing = false;
-  function flush(){
-    if (STANDALONE){                       // 端末内で確定させる。送り先が無いので待たない
-      S.queue.forEach(function(op){
-        if (op.op === "add"){
-          S.server.push({id:op.cid, ts:op.ts, date:op.date, ex:op.ex, w:op.w, r:op.r});
-        } else {
-          S.server = S.server.filter(function(r){ return r.id !== op.id; });
-        }
-      });
-      S.queue = [];
-      saveLocal(); refresh(); renderSync();
-      return;
-    }
-    if (!S.db || flushing || !S.queue.length) return;
-    flushing = true;
-    var op = S.queue[0];
-    var call = op.op === "add"
-      ? S.db.collection("sets").add({ts:op.ts, date:op.date, ex:op.ex, w:op.w, r:op.r})
-      : S.db.doc("sets/" + op.id).delete();
-    call.then(function(){
-      S.queue = S.queue.filter(function(x){ return x.cid !== op.cid; });
-      saveLocal(); renderSync();
-      flushing = false;
-      if (S.queue.length) flush();
-    }).catch(function(e){
-      flushing = false;
-      var code = (e && e.code) || "unavailable";
-      if (code === "invalid_argument" || code === "transform_error"){
-        S.queue = S.queue.filter(function(x){ return x.cid !== op.cid; });  // 送っても直らないので捨てる
-        saveLocal();
-      }
-      renderSync(code);
-    });
-  }
-
-  function renderSync(code){
-    if (STANDALONE) return;          // 送り先が無いので出さない。saveLocal の警告は残す
-    var bar = document.getElementById("syncBar");
-    var n = S.queue.length;
-    if (!n){ bar.hidden = true; return; }
-    bar.hidden = false;
-    var offline = (typeof navigator !== "undefined" && navigator.onLine === false) || !S.db;
-    bar.className = "syncbar " + (offline ? "off" : "pending");
-    bar.innerHTML = '<b>' + (offline ? "オフライン" : "未送信") + '</b>' +
-      '<span>' + n + '件がこの端末だけに残っています。' +
-      (code === "quota_exceeded" ? "サーバの容量がいっぱいです。" : "電波が戻れば自動で送ります。") +
-      '</span>';
-    var b = document.createElement("button");
-    b.type = "button"; b.textContent = "いま送る";
-    b.addEventListener("click", function(){ flush(); });
-    bar.appendChild(b);
-  }
-
-  function saveMeta(){
-    var prefs = {custom:S.custom, bar:S.bar, level:S.level, bw:S.bw, offset:S.offset};
-    LS.set("prefs", prefs);
-    if (S.db) S.db.doc("meta/prefs").set(prefs).catch(function(){});
-  }
-
-  function applyPrefs(d){
-    if (!d) return;
-    if (Array.isArray(d.custom)) S.custom = d.custom;
-    if (typeof d.bar === "number") S.bar = d.bar;
-    if (d.level === "beginner" || d.level === "inter") S.level = d.level;
-    if (typeof d.bw === "number") S.bw = d.bw;
-    if (typeof d.offset === "number") S.offset = d.offset;
-  }
-
-  /* ── イベント ── */
-  document.getElementById("wPlus").addEventListener("click", function(){ setW(2.5); });
-  document.getElementById("wMinus").addEventListener("click", function(){ setW(-2.5); });
-  document.getElementById("wPlus5").addEventListener("click", function(){ setW(5); });
-  document.getElementById("wMinus5").addEventListener("click", function(){ setW(-5); });
-  document.getElementById("rPlus").addEventListener("click", function(){ setR(1); });
-  document.getElementById("rMinus").addEventListener("click", function(){ setR(-1); });
-  document.getElementById("logBtn").addEventListener("click", logSet);
-  document.getElementById("barSel").addEventListener("change", function(e){
-    S.bar = Number(e.target.value); renderPlates(); saveMeta();
-  });
-  document.getElementById("dayPrev").addEventListener("click", function(){ S.offset--; saveMeta(); render(); });
-  document.getElementById("dayNext").addEventListener("click", function(){ S.offset++; saveMeta(); render(); });
-  document.getElementById("otherToggle").addEventListener("click", function(){
-    S.showRail = !S.showRail; renderRail();
-  });
-  document.getElementById("lvBeginner").addEventListener("click", function(){
-    S.level = "beginner"; S.offset = 0; saveMeta(); render();
-  });
-  document.getElementById("lvInter").addEventListener("click", function(){
-    S.level = "inter"; S.offset = 0; saveMeta(); render();
-  });
-  document.getElementById("bwInput").addEventListener("change", function(e){
-    var v = Number(e.target.value);
-    if (isFinite(v) && v >= 30 && v <= 200){ S.bw = v; saveMeta(); render(); }
-    else { e.target.value = String(S.bw); }
-  });
-
-  /* ── 起動 ── */
-  function start(saved){
-    S.demo = buildDemo();
-    S.server = LS.get("cache", []);
-    S.queue  = LS.get("queue", []);
-    applyPrefs(LS.get("prefs", null));
-    refresh();
-    if (saved){
-      if (saved.ex) S.ex = saved.ex;
-      if (saved.w) S.w = saved.w;
-      if (saved.r) S.r = saved.r;
-      if (saved.bar !== undefined) S.bar = saved.bar;
-      if (saved.level) S.level = saved.level;
-      if (saved.bw) S.bw = saved.bw;
-    }
-    var first = menuDay().items[0];
-    if (saved && saved.ex){ S.ex = saved.ex; render(); }
-    else if (first){ pick(first, false); }
-    else { render(); }
-    if (!STANDALONE) connect();
-  }
-
-  function connect(){
-    if (!window.claude || !window.claude.use) return;
-    window.claude.use("db").then(function(db){
-      if (!db) return;
-      S.db = db;
-      db.doc("meta/prefs").get().then(function(snap){
-        if (!snap.exists) return;
-        applyPrefs(snap.data() || {});
-        LS.set("prefs", {custom:S.custom, bar:S.bar, level:S.level, bw:S.bw, offset:S.offset});
-        render();
-      }).catch(function(){});
-
-      flush();
-
-      db.collection("sets").orderBy("ts", "desc").limit(500).onSnapshot(function(snap){
-        var out = [];
-        snap.docs.forEach(function(doc){
-          var d = doc.data() || {};
-          if (typeof d.w !== "number" || typeof d.r !== "number") return;
-          out.push({id:doc.id, ts:d.ts || 0, date:d.date || ymd(d.ts || Date.now()),
-                    ex:d.ex || "不明", w:d.w, r:d.r});
-        });
-        S.server = out;
-        saveLocal();
-        refresh();
-        if (S.live && !S.primed){
-          S.primed = true;
-          var first = menuDay().items[0];
-          if (first) pick(first, false); else render();
-          return;
-        }
-        render();
-      }, function(){ /* 取れなければ表示だけ続ける */ });
-    }).catch(function(){});
-  }
-
-  var hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot){
-    hot.snapshot(function(){ return {ex:S.ex, w:S.w, r:S.r, bar:S.bar, level:S.level, bw:S.bw}; });
-  }
-  if (hot && hot.ready){ hot.ready(start); } else { start((hot && hot.data) || {}); }
-
-  window.addEventListener("online",  function(){ renderSync(); flush(); });
-  window.addEventListener("offline", function(){ renderSync(); });
-  setInterval(function(){ if (S.queue.length) flush(); }, 20000);
-  setInterval(renderClock, 30000);
-})();
-</script>
+<script src="data.js"></script>
+<script src="app.js"></script>
 <script>
 if ("serviceWorker" in navigator){
   window.addEventListener("load", function(){

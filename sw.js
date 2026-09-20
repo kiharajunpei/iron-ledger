@@ -1,10 +1,13 @@
 /* 鉄の帳簿 — オフライン用キャッシュ。
    アプリ本体は同一オリジンから先読みし、Webフォントは見かけたぶんだけ拾う。
    記録そのものは localStorage にあるので、ここが消えてもデータは失われない。 */
-var CACHE = "iron-ledger-v1";
+var CACHE = "iron-ledger-v2";
 var SHELL = [
   "./",
   "./index.html",
+  "./styles.css",
+  "./data.js",
+  "./app.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

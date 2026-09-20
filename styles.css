@@ -1,0 +1,513 @@
+:root{
+  --ground:#e6e8ea; --surface:#fbfbfa; --surface-2:#eef0f1; --raise:#ffffff;
+  --ink:#14161a; --ink-2:#4a515c; --ink-3:#7b838f;
+  --line:#d2d6da; --line-2:#bfc5cb;
+  --accent:#c8202b; --steel:#1f5fbf; --gold:#8f6f12; --grass:#2c7a41;
+  --shadow:0 1px 1px rgba(20,22,26,.05), 0 10px 26px -18px rgba(20,22,26,.55);
+  --plate-white-ink:#2a2d33;
+  --font-display:"Oswald",system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+  --font-body:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1013; --surface:#171a1f; --surface-2:#1e222a; --raise:#242932;
+    --ink:#e9ebee; --ink-2:#a7aeb9; --ink-3:#79808c;
+    --line:#2a2f37; --line-2:#3a414b;
+    --accent:#ff4a52; --steel:#5f9dff; --gold:#e2b53c; --grass:#4fbf6c;
+    --shadow:0 1px 1px rgba(0,0,0,.4), 0 12px 30px -18px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1013; --surface:#171a1f; --surface-2:#1e222a; --raise:#242932;
+  --ink:#e9ebee; --ink-2:#a7aeb9; --ink-3:#79808c;
+  --line:#2a2f37; --line-2:#3a414b;
+  --accent:#ff4a52; --steel:#5f9dff; --gold:#e2b53c; --grass:#4fbf6c;
+  --shadow:0 1px 1px rgba(0,0,0,.4), 0 12px 30px -18px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font-body); font-size:15px; line-height:1.6;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:600px; margin:0 auto; padding-inline:16px; padding-block:20px 64px;
+  display:flex; flex-direction:column; gap:18px}
+h1,h2,h3{margin:0; text-wrap:balance}
+button{font:inherit; color:inherit; cursor:pointer}
+:focus-visible{outline:2px solid var(--steel); outline-offset:2px; border-radius:4px}
+.num{font-family:var(--font-display); font-variant-numeric:tabular-nums; font-weight:500}
+.eyebrow{font-family:var(--font-display); font-weight:500; font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3)}
+
+/* ── ヘッダー ───────────────────────────── */
+.masthead{display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  border-bottom:2px solid var(--ink); padding-bottom:10px}
+.mark{font-family:var(--font-display); font-weight:600; font-size:clamp(21px,5.4vw,30px);
+  line-height:1; letter-spacing:.02em}
+.mark small{display:block; font-size:10px; letter-spacing:.28em; color:var(--ink-3);
+  font-weight:500; margin-top:5px}
+.clock{text-align:right; font-size:11px; color:var(--ink-3); line-height:1.5;
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.clock b{color:var(--ink-2); font-weight:500}
+
+.tally{display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:2px; overflow:hidden}
+.tally div{background:var(--surface); padding:10px 12px}
+.tally .v{font-family:var(--font-display); font-weight:500; font-size:26px; line-height:1.1;
+  font-variant-numeric:tabular-nums}
+.tally .v span{font-size:12px; color:var(--ink-3); margin-left:2px}
+.tally .k{font-size:10.5px; color:var(--ink-3); letter-spacing:.04em}
+
+.sample-note{display:flex; gap:8px; align-items:baseline; font-size:12px; color:var(--ink-2);
+  background:var(--surface-2); border-left:3px solid var(--gold); padding:8px 12px;
+  border-radius:0 3px 3px 0}
+.sample-note b{color:var(--gold); font-family:var(--font-display); letter-spacing:.1em;
+  font-size:11px; white-space:nowrap}
+
+.syncbar{display:flex; gap:9px; align-items:center; font-size:12px; padding:8px 12px;
+  border-radius:0 3px 3px 0; line-height:1.45}
+.syncbar b{font-family:var(--font-display); letter-spacing:.1em; font-size:11px; white-space:nowrap}
+.syncbar.pending{background:var(--surface-2); border-left:3px solid var(--steel); color:var(--ink-2)}
+.syncbar.pending b{color:var(--steel)}
+.syncbar.off{background:var(--surface-2); border-left:3px solid var(--accent); color:var(--ink-2)}
+.syncbar.off b{color:var(--accent)}
+.syncbar button{margin-left:auto; flex:none; background:var(--surface); border:1px solid var(--line-2);
+  border-radius:3px; padding:4px 10px; font-size:12px; color:var(--ink-2)}
+
+/* ── 今日のメニュー ─────────────────────── */
+.menu{background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--accent);
+  border-radius:0 0 3px 3px; box-shadow:var(--shadow); overflow:hidden}
+.menu-top{display:flex; align-items:center; gap:10px; padding:13px 14px 11px}
+.daybadge{flex:none; width:46px; height:46px; border-radius:2px; background:var(--ink);
+  color:var(--ground); display:flex; flex-direction:column; align-items:center;
+  justify-content:center; line-height:1}
+.daybadge b{font-family:var(--font-display); font-weight:600; font-size:22px}
+.daybadge i{font-style:normal; font-size:8.5px; letter-spacing:.14em; opacity:.72;
+  font-family:var(--font-display); margin-top:2px}
+.menu-title{flex:1; min-width:0}
+.menu-title h2{font-family:var(--font-display); font-weight:600; font-size:21px;
+  letter-spacing:.01em; line-height:1.15}
+.menu-title p{margin:3px 0 0; font-size:11.5px; color:var(--ink-3); line-height:1.45}
+.shift{display:flex; gap:4px; flex:none}
+.shift button{width:30px; height:30px; border-radius:2px; background:var(--surface-2);
+  border:1px solid var(--line-2); color:var(--ink-3); font-size:13px; line-height:1;
+  display:flex; align-items:center; justify-content:center}
+
+.bar{height:4px; background:var(--surface-2); display:flex}
+.bar i{display:block; background:var(--accent); transition:width .3s}
+@media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+
+.menu-list{display:flex; flex-direction:column; gap:1px; background:var(--line)}
+.mi{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:10px;
+  background:var(--surface); border:none; width:100%; text-align:left; padding:10px 14px}
+.mi[aria-current="true"]{background:var(--surface-2); box-shadow:inset 3px 0 0 var(--accent)}
+.mi.done .name{color:var(--ink-3); text-decoration:line-through;
+  text-decoration-color:var(--ink-3); text-decoration-thickness:1px}
+.tick{width:19px; height:19px; border-radius:50%; border:1.5px solid var(--line-2);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:transparent}
+.mi.done .tick{background:var(--grass); border-color:var(--grass); color:#fff}
+.mi.part .tick{border-color:var(--accent); color:var(--accent); font-size:9px}
+.mi .name{font-size:14px; line-height:1.35; overflow-wrap:anywhere}
+.mi .note{display:block; font-size:11px; color:var(--ink-3); line-height:1.4; margin-top:1px}
+.mi .target{font-family:var(--font-display); font-weight:500; font-size:12.5px;
+  font-variant-numeric:tabular-nums; color:var(--ink-3); white-space:nowrap; text-align:right}
+.mi .target b{display:block; color:var(--ink-2); font-size:13.5px}
+.menu-foot{background:var(--surface); padding:9px 14px; font-size:11px; color:var(--ink-3);
+  border-top:1px solid var(--line)}
+
+/* ── 種目 ───────────────────────────────── */
+.rail{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-inline:-16px;
+  padding-inline:16px; scrollbar-width:thin}
+.chip{flex:none; background:var(--surface); border:1px solid var(--line-2); color:var(--ink-2);
+  border-radius:999px; padding:6px 14px; font-size:13.5px; white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--ground);
+  font-weight:500}
+.chip.add{border-style:dashed; color:var(--ink-3)}
+.disclose{background:none; border:none; padding:0; font-size:12px; color:var(--ink-3);
+  display:flex; align-items:center; gap:5px}
+
+/* ── 記録カード ─────────────────────────── */
+.deck{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+  box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:14px}
+.deck-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.deck-head h2{font-family:var(--font-display); font-weight:500; font-size:19px;
+  letter-spacing:.01em; overflow-wrap:anywhere}
+
+.dials{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.dial{background:var(--surface-2); border-radius:3px; padding:10px; display:flex;
+  flex-direction:column; align-items:center; gap:6px}
+.dial .k{font-size:10.5px; letter-spacing:.12em; color:var(--ink-3);
+  font-family:var(--font-display); text-transform:uppercase}
+.dial .readout{font-family:var(--font-display); font-weight:300; font-size:46px; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.dial .readout u{text-decoration:none; font-size:15px; font-weight:500; color:var(--ink-3);
+  margin-left:3px}
+.steps{display:flex; gap:6px; width:100%}
+.steps button{flex:1; background:var(--raise); border:1px solid var(--line-2); border-radius:3px;
+  padding:9px 0; font-family:var(--font-display); font-weight:500; font-size:14px;
+  font-variant-numeric:tabular-nums; color:var(--ink-2); min-height:42px}
+.steps button:active{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+
+.log-btn{width:100%; background:var(--accent); color:#fff; border:none; border-radius:3px;
+  padding:16px; font-family:var(--font-display); font-weight:600; font-size:19px;
+  letter-spacing:.06em; min-height:56px}
+.log-btn:active{transform:translateY(1px)}
+
+/* ── プレート ───────────────────────────── */
+.plates{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  border-top:1px dashed var(--line-2); padding-top:12px}
+.plates .k{font-size:11px; color:var(--ink-3); font-family:var(--font-display);
+  letter-spacing:.1em; flex:none}
+.stack{display:flex; align-items:center; gap:3px; flex-wrap:wrap}
+.plate{font-family:var(--font-display); font-weight:600; font-size:11px;
+  font-variant-numeric:tabular-nums; padding:3px 7px; border-radius:2px; color:#fff;
+  border:1px solid rgba(0,0,0,.25)}
+.p25{background:#c8202b} .p20{background:#1f5fbf} .p15{background:#d8b400; color:#2a2d33}
+.p10{background:#2c7a41} .p5{background:#f2f3f4; color:var(--plate-white-ink); border-color:#a8adb3}
+.p2{background:#2a2d33} .p1{background:#9aa3ad}
+.plates .rem{font-size:11.5px; color:var(--accent)}
+.barsel{margin-left:auto; font:inherit; font-size:12px; background:var(--surface-2);
+  color:var(--ink-2); border:1px solid var(--line-2); border-radius:3px; padding:3px 6px}
+
+/* ── 前回 ───────────────────────────────── */
+.lastcard{display:flex; flex-direction:column; gap:8px; background:var(--surface);
+  border:1px solid var(--line); border-left:3px solid var(--steel); border-radius:0 3px 3px 0;
+  padding:12px 14px}
+.lastcard .top{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.lastcard .when{font-size:12px; color:var(--ink-3)}
+.setline{display:flex; gap:6px; flex-wrap:wrap}
+.setpill{font-family:var(--font-display); font-weight:500; font-size:13px;
+  font-variant-numeric:tabular-nums; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:2px; padding:3px 8px; color:var(--ink-2)}
+.delta{font-family:var(--font-display); font-weight:600; font-size:13px; letter-spacing:.03em;
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.up{color:var(--grass)} .down{color:var(--accent)} .flat{color:var(--ink-3)}
+
+/* ── 今日のセット ───────────────────────── */
+.today-list{display:flex; flex-direction:column; gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:3px; overflow:hidden}
+.row{display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px;
+  background:var(--surface); padding:9px 12px}
+.row .i{font-family:var(--font-display); font-size:11px; color:var(--ink-3); width:22px;
+  font-variant-numeric:tabular-nums}
+.row .ex{font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.row .wr{font-family:var(--font-display); font-weight:500; font-size:15px;
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.row .wr u{text-decoration:none; font-size:11px; color:var(--ink-3)}
+.row .del{background:none; border:none; color:var(--ink-3); font-size:16px; line-height:1;
+  padding:4px 2px; min-width:28px}
+.row .del:hover{color:var(--accent)}
+.empty{background:var(--surface); border:1px dashed var(--line-2); border-radius:3px;
+  padding:18px; text-align:center; color:var(--ink-3); font-size:13px}
+
+/* ── 推移 ───────────────────────────────── */
+.chartbox{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px}
+.chartbox .top{display:flex; justify-content:space-between; align-items:baseline;
+  gap:10px; margin-bottom:6px}
+svg.spark{display:block; width:100%; height:auto; max-width:100%; overflow:visible}
+.spark .grid{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
+.spark .line{fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round;
+  stroke-linecap:round}
+.spark .area{fill:var(--accent); opacity:.09; stroke:none}
+.spark .dot{fill:var(--surface); stroke:var(--accent); stroke-width:2}
+.spark .dot.last{fill:var(--accent)}
+.spark text{font-family:var(--font-display); font-size:10px; fill:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+.spark text.val{fill:var(--ink); font-weight:600; font-size:11px}
+.foot-note{font-size:11.5px; color:var(--ink-3); margin-top:8px}
+
+/* ── 卒業判定 ───────────────────────────── */
+.grad{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px;
+  display:flex; flex-direction:column; gap:10px}
+.grad .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.gauge{height:8px; background:var(--surface-2); border-radius:2px; overflow:hidden}
+.gauge i{display:block; height:100%; background:var(--steel)}
+.gauge i.hit{background:var(--grass)}
+.crit{display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--ink-2);
+  line-height:1.5}
+.crit .mk{font-family:var(--font-display); font-weight:600; font-size:13px; flex:none;
+  width:16px; text-align:center}
+
+/* ── 週間ボリューム ─────────────────────── */
+.vol{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px;
+  display:flex; flex-direction:column; gap:11px}
+.vol .head{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.vrow{display:grid; grid-template-columns:44px 1fr 52px; align-items:center; gap:9px}
+.vrow .mgn{font-size:12.5px; color:var(--ink-2)}
+.vrow .track{position:relative; height:14px; background:var(--surface-2); border-radius:2px}
+.vrow .band{position:absolute; top:0; bottom:0; left:33.33%; width:33.33%;
+  background:var(--line); opacity:.9}
+.vrow .fill{position:absolute; top:2px; bottom:2px; left:0; background:var(--steel);
+  border-radius:1px}
+.vrow .fill.low{background:var(--gold)}
+.vrow .fill.over{background:var(--accent)}
+.vrow .vn{font-family:var(--font-display); font-weight:500; font-size:13px; text-align:right;
+  font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.vrow .vn u{text-decoration:none; font-size:10px; color:var(--ink-3)}
+.vrow.sub{margin-top:-5px}
+.vrow.sub .mgn{font-size:11.5px; color:var(--ink-3)}
+.vrow.sub .track{height:9px}
+.vrow.sub .vn{font-size:12px; color:var(--ink-3)}
+.vrow .fill.up{background:var(--grass)}
+.vsub{grid-column:1/-1; font-size:11px; color:var(--ink-3); margin:-4px 0 3px 53px; line-height:1.5}
+.vscale{display:grid; grid-template-columns:44px 1fr 52px; gap:9px; font-family:var(--font-display);
+  font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.vscale span{display:flex; justify-content:space-between}
+
+/* ── 履歴 ───────────────────────────────── */
+.day{border-top:1px solid var(--line)}
+.day:first-child{border-top:none}
+.day-head{width:100%; background:none; border:none; display:flex; align-items:baseline;
+  justify-content:space-between; gap:10px; padding:11px 2px; text-align:left}
+.day-head .d{font-family:var(--font-display); font-weight:500; font-size:15px;
+  font-variant-numeric:tabular-nums}
+.day-head .s{font-size:11.5px; color:var(--ink-3); white-space:nowrap}
+.day-body{padding:0 2px 12px; display:flex; flex-direction:column; gap:7px}
+.dgrp{display:grid; grid-template-columns:minmax(88px,auto) 1fr; gap:8px; align-items:baseline}
+.dgrp .n{font-size:12.5px; color:var(--ink-2)}
+.hist-wrap{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+  padding:2px 14px}
+
+/* ── 設定 ───────────────────────────────── */
+.settings{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+  padding:14px; display:flex; flex-direction:column; gap:12px}
+.seg{display:flex; gap:1px; background:var(--line); border:1px solid var(--line);
+  border-radius:2px; overflow:hidden}
+.seg button{flex:1; background:var(--surface); border:none; padding:9px 6px; font-size:13px;
+  color:var(--ink-3); line-height:1.3}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--ground); font-weight:500}
+.seg button small{display:block; font-size:10px; opacity:.7}
+.field{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.field label{font-size:13px; color:var(--ink-2)}
+.field input{width:96px; font:inherit; font-family:var(--font-display); font-weight:500;
+  font-size:16px; text-align:right; font-variant-numeric:tabular-nums;
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line-2);
+  border-radius:3px; padding:6px 9px}
+
+@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+@media (max-width:400px){
+  .tally .v{font-size:22px}
+  .dial .readout{font-size:40px}
+  .menu-title h2{font-size:18px}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ここから下は改修ぶん
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 触り心地（入力バグの本丸）────────────────────────────────
+   ダブルタップ拡大を殺す。これが無いと ± を連打した瞬間に
+   iOS がズームして画面が飛び、押したはずの回数が入らない。 */
+button, .tab, .padkey, .chip, .mi, .seg button, .steps button, .day-head{
+  touch-action:manipulation;
+  -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.wrap{padding-block:20px calc(84px + env(safe-area-inset-bottom))}
+.view[hidden]{display:none !important}
+.view{display:flex; flex-direction:column; gap:18px}
+
+/* ── ボトムタブ ──────────────────────────── */
+.tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:var(--surface); border-top:1px solid var(--line-2);
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -6px 20px -16px rgba(0,0,0,.6);
+}
+.tab{
+  background:none; border:none; padding:7px 2px 8px; display:flex; flex-direction:column;
+  align-items:center; gap:3px; color:var(--ink-3); min-height:54px; position:relative;
+}
+.tab .g{font-size:17px; line-height:1}
+.tab .l{font-size:10px; letter-spacing:.06em; font-family:var(--font-display); font-weight:500}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"]::before{
+  content:""; position:absolute; top:0; left:18%; right:18%; height:2px; background:var(--accent);
+}
+
+/* ── インターバルタイマー ────────────────── */
+.restbar{
+  position:fixed; left:0; right:0; z-index:39;
+  bottom:calc(54px + env(safe-area-inset-bottom));
+  background:var(--ink); color:var(--ground);
+  display:flex; align-items:center; gap:10px; padding:9px 14px;
+}
+.restbar .t{font-family:var(--font-display); font-weight:500; font-size:24px;
+  font-variant-numeric:tabular-nums; line-height:1; min-width:66px}
+.restbar .k{font-size:10.5px; letter-spacing:.14em; font-family:var(--font-display);
+  opacity:.65; text-transform:uppercase}
+.restbar .ex{font-size:11.5px; opacity:.8; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; flex:1; min-width:0}
+.restbar button{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22);
+  color:inherit; border-radius:3px; padding:6px 10px; font-size:12px; flex:none}
+.restbar.done{background:var(--grass)}
+.restbar .prog{position:absolute; left:0; bottom:0; height:2px; background:var(--accent)}
+
+/* ── トースト（記録の取り消し）────────────── */
+.toast{
+  position:fixed; left:50%; transform:translateX(-50%); z-index:60;
+  bottom:calc(72px + env(safe-area-inset-bottom));
+  background:var(--ink); color:var(--ground); border-radius:4px;
+  padding:10px 12px; display:flex; align-items:center; gap:12px;
+  font-size:13px; box-shadow:0 10px 30px -12px rgba(0,0,0,.7);
+  max-width:calc(100vw - 32px);
+}
+.toast b{font-family:var(--font-display); font-weight:500; font-variant-numeric:tabular-nums}
+.toast button{background:none; border:none; color:var(--accent); font-weight:600;
+  font-size:13px; padding:2px 4px; flex:none}
+:root:not([data-theme="dark"]) .toast button{color:#ff7a80}
+
+/* ── テンキー（直接入力）──────────────────
+   native の input を使わない。type=number は iOS で全角・IME・
+   既存値への割り込みが起きて、打った数字と違う値が確定する。 */
+.sheet{position:fixed; inset:0; z-index:70; display:flex; flex-direction:column;
+  justify-content:flex-end; background:rgba(8,9,11,.5)}
+.sheetcard{background:var(--surface); border-top:3px solid var(--accent);
+  border-radius:8px 8px 0 0; padding:14px 14px calc(14px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:11px; max-width:600px; width:100%; margin:0 auto}
+.sheetcard .sh{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.sheetcard .sh h3{font-family:var(--font-display); font-weight:500; font-size:17px}
+.sheetcard .sh .close{background:none; border:none; color:var(--ink-3); font-size:20px;
+  line-height:1; padding:2px 6px}
+.padout{font-family:var(--font-display); font-weight:300; font-size:44px; line-height:1.1;
+  font-variant-numeric:tabular-nums; text-align:center; background:var(--surface-2);
+  border-radius:3px; padding:12px 8px; overflow-wrap:anywhere}
+.padout u{text-decoration:none; font-size:15px; font-weight:500; color:var(--ink-3); margin-left:4px}
+.padout.bad{color:var(--accent)}
+.padhint{font-size:11.5px; color:var(--ink-3); text-align:center; line-height:1.5; min-height:1.5em}
+.padquick{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px}
+.padquick button{flex:none; background:var(--surface-2); border:1px solid var(--line-2);
+  border-radius:999px; padding:6px 13px; font-size:13px; color:var(--ink-2);
+  font-family:var(--font-display); font-variant-numeric:tabular-nums}
+.padgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
+.padkey{background:var(--raise); border:1px solid var(--line-2); border-radius:4px;
+  padding:14px 0; font-family:var(--font-display); font-weight:500; font-size:21px;
+  font-variant-numeric:tabular-nums; min-height:52px}
+.padkey:active{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.padkey.fn{background:var(--surface-2); font-size:17px; color:var(--ink-2)}
+.padok{background:var(--accent); color:#fff; border:none; border-radius:3px; padding:15px;
+  font-family:var(--font-display); font-weight:600; font-size:17px; letter-spacing:.06em;
+  min-height:52px}
+.padok[disabled]{opacity:.4}
+
+/* ── 読み取り（タップで開く）──────────────── */
+.dial .readout{position:relative}
+.readbtn{background:none; border:none; padding:2px 6px; border-radius:4px;
+  border-bottom:1px dashed var(--line-2); display:block; width:100%}
+.readbtn:active{background:var(--surface)}
+
+/* ── 推奨重量 ─────────────────────────────── */
+.rec{display:flex; align-items:center; gap:9px; background:var(--surface-2);
+  border-left:3px solid var(--steel); border-radius:0 3px 3px 0; padding:9px 11px;
+  font-size:12.5px; color:var(--ink-2); line-height:1.45}
+.rec .k{font-family:var(--font-display); font-weight:500; font-size:10.5px; letter-spacing:.12em;
+  color:var(--steel); flex:none; text-transform:uppercase}
+.rec .v{font-family:var(--font-display); font-weight:500; font-size:15px;
+  font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap}
+.rec .why{font-size:11px; color:var(--ink-3); display:block}
+.rec button{margin-left:auto; flex:none; background:var(--surface); border:1px solid var(--line-2);
+  border-radius:3px; padding:6px 11px; font-size:12px; color:var(--ink-2)}
+.rec.none{border-left-color:var(--line-2)}
+.rec.none .k{color:var(--ink-3)}
+
+/* ── 強さの物差し ─────────────────────────── */
+.lv{display:flex; flex-direction:column; gap:7px}
+.lvtop{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.lvtop .now{font-family:var(--font-display); font-weight:600; font-size:15px; letter-spacing:.04em}
+.lvtop .sub{font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.lvtrack{position:relative; height:10px; background:var(--surface-2); border-radius:2px;
+  display:flex; gap:1px; overflow:hidden}
+.lvtrack i{flex:1; background:var(--line)}
+.lvtrack i.on{background:var(--steel)}
+.lvtrack i.on.max{background:var(--gold)}
+.lvmark{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink)}
+.lvscale{display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-3);
+  font-family:var(--font-display); letter-spacing:.04em}
+.lvrow{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;
+  padding:9px 0; border-top:1px solid var(--line)}
+.lvrow:first-of-type{border-top:none}
+.lvrow .nm{font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lvrow .nm small{display:block; font-size:10.5px; color:var(--ink-3)}
+.lvrow .bd{font-family:var(--font-display); font-weight:600; font-size:11px; letter-spacing:.08em;
+  padding:3px 8px; border-radius:2px; white-space:nowrap}
+.bd0{background:var(--surface-2); color:var(--ink-3)}
+.bd1{background:rgba(31,95,191,.14); color:var(--steel)}
+.bd2{background:rgba(44,122,65,.16); color:var(--grass)}
+.bd3{background:rgba(143,111,18,.18); color:var(--gold)}
+.bd4{background:rgba(200,32,43,.15); color:var(--accent)}
+
+/* ── 積み上げ：カレンダー ─────────────────── */
+.calbox{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px}
+.calhead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
+.calhead .m{font-family:var(--font-display); font-weight:500; font-size:17px;
+  font-variant-numeric:tabular-nums}
+.calhead button{background:var(--surface-2); border:1px solid var(--line-2); border-radius:2px;
+  width:30px; height:30px; color:var(--ink-3); font-size:13px; line-height:1}
+.calgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+.caldow{font-size:9.5px; color:var(--ink-3); text-align:center; font-family:var(--font-display);
+  letter-spacing:.04em; padding-bottom:2px}
+.calcell{position:relative; aspect-ratio:1; border-radius:2px; background:var(--surface-2);
+  border:1px solid transparent; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:2px; padding:0; color:var(--ink-3); font-size:10.5px;
+  font-family:var(--font-display); font-variant-numeric:tabular-nums}
+.calcell.pad{background:none; color:transparent; pointer-events:none}
+.calcell.has{color:var(--ink)}
+.calcell.today{border-color:var(--ink)}
+.calcell[aria-pressed="true"]{outline:2px solid var(--steel); outline-offset:-2px}
+.caldots{display:flex; gap:1.5px; height:4px; align-items:center}
+.caldots i{width:4px; height:4px; border-radius:50%; display:block}
+.calfoot{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;
+  font-size:11px; color:var(--ink-3)}
+.calfoot .lg{display:flex; align-items:center; gap:4px}
+.calfoot .lg i{width:7px; height:7px; border-radius:50%; display:block}
+
+/* ── 積み上げ：数字 ───────────────────────── */
+.statgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:3px; overflow:hidden}
+.statgrid > div{background:var(--surface); padding:11px 13px}
+.statgrid .v{font-family:var(--font-display); font-weight:500; font-size:23px; line-height:1.15;
+  font-variant-numeric:tabular-nums}
+.statgrid .v span{font-size:11.5px; color:var(--ink-3); margin-left:2px}
+.statgrid .k{font-size:10.5px; color:var(--ink-3); letter-spacing:.04em; margin-top:1px}
+.statgrid .s{font-size:10.5px; color:var(--ink-3); margin-top:3px; font-variant-numeric:tabular-nums}
+
+/* ── 積み上げ：週次の棒 ───────────────────── */
+.barsbox{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:14px}
+.bars{display:flex; align-items:stretch; gap:3px; height:96px; margin:10px 0 4px}
+.bars .b{flex:1; background:var(--surface-2); border-radius:1px 1px 0 0; position:relative;
+  display:flex; align-items:flex-end}
+.bars .b i{display:block; width:100%; background:var(--steel); border-radius:1px 1px 0 0}
+.bars .b.now i{background:var(--accent)}
+.barslab{display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-3);
+  font-family:var(--font-display); font-variant-numeric:tabular-nums}
+
+/* ── PR ───────────────────────────────────── */
+.pr{font-family:var(--font-display); font-weight:600; font-size:10px; letter-spacing:.1em;
+  background:var(--gold); color:#fff; border-radius:2px; padding:2px 6px; white-space:nowrap}
+.setpill.prset{border-color:var(--gold); color:var(--gold)}
+.row.prset .wr{color:var(--gold)}
+
+/* ── セット行の編集 ───────────────────────── */
+.row{grid-template-columns:auto 1fr auto auto auto}
+.row .edit{background:none; border:none; color:var(--ink-3); font-size:13px; line-height:1;
+  padding:4px 2px; min-width:26px}
+.row .edit:active{color:var(--steel)}
+
+/* ── 単位の注記 ───────────────────────────── */
+.unitnote{font-size:10.5px; color:var(--ink-3); letter-spacing:.02em}
+
+/* ── 設定の追加ぶん ───────────────────────── */
+.field select{font:inherit; font-size:13px; background:var(--surface-2); color:var(--ink);
+  border:1px solid var(--line-2); border-radius:3px; padding:6px 8px; max-width:60%}
+.field .sub{font-size:11px; color:var(--ink-3); display:block; margin-top:2px}
+.danger{background:var(--surface); border:1px solid var(--accent); color:var(--accent);
+  border-radius:3px; padding:10px; font-size:13px; width:100%}
+
+@media (max-width:400px){
+  .statgrid .v{font-size:20px}
+  .padkey{font-size:19px; padding:12px 0; min-height:48px}
+  .padout{font-size:38px}
+}
