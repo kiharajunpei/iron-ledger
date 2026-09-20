@@ -78,7 +78,12 @@
   }
   function unitLabel(ex){
     var u = meta(ex).u;
-    return u === "db" ? "片手" : (u === "bw" ? "自重に追加" : (u === "mc" ? "表示値" : ""));
+    return u === "db" ? "片手" : (u === "bw" ? "自重に追加" : (u === "mc" ? "マシンの表示値" : ""));
+  }
+  /* ダイヤルの見出しに出す短い版。長いと折り返して左右のダイヤルがズレる */
+  function unitShort(ex){
+    var u = meta(ex).u;
+    return u === "db" ? "片手" : (u === "mc" ? "表示値" : "");
   }
 
   /* 限界までやったときの「その回数で挙がる重量 ÷ 1RM」。間は線形で埋める */
@@ -251,6 +256,21 @@
     };
   }
 
+  /* レベルごとの「この回数ならこの重さ」。記録の有無にかかわらず出す。
+     自分の記録から出した「次の一手」と並べて見えないと、
+     いまの重量が世間のどのへんなのか分からない。 */
+  function stdWeights(ex, reps){
+    var m = meta(ex);
+    if (!m.std) return null;
+    var inc = m.inc || 2.5;
+    return m.std.map(function(ratio){
+      var one = ratio * S.bw;                       // そのレベルの1RM
+      var w = one * pct1rm(reps);
+      if (BW[ex]) w -= S.bw;                        // 入力するのは追加した重りだけ
+      return {one:one, w:Math.max(0, snap(w, inc))};
+    });
+  }
+
   /* ═══════════════ サンプル ═══════════════ */
   function buildDemo(){
     var out = [], i = 0;
@@ -405,26 +425,32 @@
     var m = meta(S.ex), r = rangeFor(S.ex);
     $("deckEx").textContent = S.ex;
     $("deckE1rm").textContent = "推定1RM " + fmtN(e1rm(load(S.ex, S.w), S.r)) + "kg";
-    $("wUnit").textContent = unitLabel(S.ex) ? "（" + unitLabel(S.ex) + "）" : "";
+    $("wUnit").textContent = unitShort(S.ex) ? "／" + unitShort(S.ex) : "";
     $("wOut").innerHTML = BW[S.ex]
       ? (S.w > 0 ? fmtN(S.w) + "<u>kg追加</u>" : '<span style="font-size:30px">自重</span>')
       : fmtN(S.w) + "<u>kg</u>";
     $("rOut").innerHTML = S.r + "<u>回</u>";
 
     /* ステップ幅は種目に合わせる。サイドレイズで ±5kg は要らない */
-    var inc = m.inc, steps = [[-inc*2],[-inc],[inc],[inc*2]];
-    var box = $("wSteps"); box.innerHTML = "";
-    steps.forEach(function(p){
-      var d = p[0];
+    var inc = m.inc;
+    fillSteps($("wSteps"), [-inc*2, -inc, inc, inc*2], setW);
+    /* 回数も4つ。30〜50回の種目を ±1 だけで動かすのは無理がある */
+    fillSteps($("rSteps"), [-5, -1, 1, 5], setR);
+
+    renderRec(r);
+    renderStd(r);
+    renderPlates();
+  }
+
+  function fillSteps(box, deltas, fn){
+    box.innerHTML = "";
+    deltas.forEach(function(d){
       var b = document.createElement("button");
       b.type = "button";
       b.textContent = (d > 0 ? "+" : "−") + fmtN(Math.abs(d));
-      b.addEventListener("click", function(){ setW(d); });
+      b.addEventListener("click", function(){ fn(d); });
       box.appendChild(b);
     });
-
-    renderRec(r);
-    renderPlates();
   }
 
   function renderRec(r){
@@ -449,6 +475,53 @@
       S.w = rec.pick; S.r = Math.round((r.lo + r.hi) / 2); renderDeck();
     });
     box.appendChild(b);
+  }
+
+  function renderStd(r){
+    var box = $("stdBox"), m = meta(S.ex);
+    var mid = Math.max(1, Math.round((r.lo + r.hi) / 2));
+    var ws = stdWeights(S.ex, mid);
+    if (!ws){
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+
+    var lv = levelOf(S.ex, real());               // 自分の記録での位置。無ければ null
+    var hereIdx = lv ? lv.idx : overallLevel();   // 記録が無い種目はベンチから推定した位置
+
+    var cells = ws.map(function(x, i){
+      var cls = "stdcell" + (i === hereIdx ? " now" : (i < hereIdx ? " done" : ""));
+      var label = BW[S.ex] ? (x.w > 0 ? "+" + fmtN(x.w) : "自重") : fmtN(x.w);
+      return '<button type="button" class="' + cls + '" data-w="' + x.w + '" ' +
+        'aria-label="' + LEVELS[i] + 'の目安 ' + fmtN(x.w) + 'kg を入れる">' +
+        '<span class="n">' + LEVELS[i] + '</span><span class="w">' + label + '</span></button>';
+    }).join("");
+
+    var note;
+    if (lv){
+      var nx = lv.idx < 4 ? m.std[lv.idx + 1] * S.bw : null;
+      note = 'いまの推定1RM <b>' + fmtN(lv.best) + 'kg</b>（体重比 ' + lv.ratio.toFixed(2) + '倍）。' +
+        (nx ? '次の「' + LEVELS[lv.idx + 1] + '」まで 1RM であと <b>' + fmtN(nx - lv.best) + 'kg</b>。'
+            : 'この種目はエリート域。');
+    } else {
+      note = 'この種目はまだ記録が無いので、' +
+        (levelOf("ベンチプレス", real()) ? 'ベンチプレスの記録から' : '') +
+        '<b>' + LEVELS[hereIdx] + '</b>と見て目安を出している。1セット記録すれば実測に切り替わる。';
+    }
+
+    box.innerHTML =
+      '<div class="sh"><b>目安</b>' +
+      '<span class="now">' + (lv ? "いま " + LEVELS[lv.idx] : "推定 " + LEVELS[hereIdx]) + '</span></div>' +
+      '<div class="sub">' + mid + '回でやるなら（' + r.lo + '〜' + r.hi + '回の真ん中）</div>' +
+      '<div class="stdrow">' + cells + '</div>' +
+      '<div class="note">' + note + ' 数字を押すとその重さが入る。</div>';
+
+    Array.prototype.forEach.call(box.querySelectorAll(".stdcell"), function(b){
+      b.addEventListener("click", function(){
+        S.w = Number(b.getAttribute("data-w")); S.r = mid; renderDeck();
+      });
+    });
   }
 
   function renderPlates(){
@@ -1366,8 +1439,6 @@
   }
 
   /* ═══════════════ イベント ═══════════════ */
-  $("rPlus").addEventListener("click", function(){ setR(1); });
-  $("rMinus").addEventListener("click", function(){ setR(-1); });
   $("wOut").addEventListener("click", openWeightPad);
   $("rOut").addEventListener("click", openRepPad);
   $("logBtn").addEventListener("click", logSet);
