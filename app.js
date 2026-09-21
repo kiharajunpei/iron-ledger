@@ -29,7 +29,7 @@
     custom:[], bars:{}, level:"beginner", bw:70, offset:0,
     tz:"local", rest:"auto", sound:"both", lastExport:0,
     ex:"ベンチプレス", w:60, r:8,
-    view:"today", open:{}, showRail:false, menus:[], ed:null,
+    view:"today", open:{}, showRail:false, menus:[], ed:null, weights:[],
     calMonth:null, calSel:null,
     restEnd:0, restTotal:0, restEx:"", restTick:null,
     toastTimer:null, lastUndo:null,
@@ -70,8 +70,62 @@
     });
   }
   function meta(ex){ return EX[ex] || {u:"bb", inc:2.5, rest:90, std:null}; }
+  /* ── 体重 ──
+     日ごとに記録する。設定の1つの値ではなく列として持つ。
+     自重種目のボリュームと推定1RMには体重が乗るので、昔の記録には
+     「その頃の体重」を使う。今日の体重を当てると過去の数字が後から動く。 */
+  function saveWeights(){ LS.set("weights", S.weights); }
+  function latestWeight(){ return S.weights.length ? S.weights[S.weights.length - 1] : null; }
+  function bwNow(){ var l = latestWeight(); return l ? l.kg : S.bw; }
+  function bwAt(date){
+    if (!S.weights.length) return S.bw;
+    var best = null;
+    for (var i = 0; i < S.weights.length; i++){
+      if (S.weights[i].date <= date) best = S.weights[i]; else break;
+    }
+    return best ? best.kg : S.weights[0].kg;
+  }
+  function weightOn(date){
+    for (var i = 0; i < S.weights.length; i++) if (S.weights[i].date === date) return S.weights[i];
+    return null;
+  }
+  function sortWeights(){
+    S.weights.sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+  }
+  function setWeight(kg, date){
+    date = date || today();
+    var cur = weightOn(date);
+    if (cur){ cur.kg = kg; cur.ts = Date.now(); }
+    else { S.weights.push({date:date, kg:kg, ts:Date.now()}); sortWeights(); }
+    S.bw = bwNow();                  /* 記録が無いときの控えも合わせておく */
+    saveWeights(); saveMeta(); render();
+  }
+  function removeWeight(date){
+    var i = -1;
+    S.weights.forEach(function(x, k){ if (x.date === date) i = k; });
+    if (i < 0) return;
+    var gone = S.weights[i];
+    S.weights.splice(i, 1);
+    S.bw = bwNow();
+    saveWeights(); saveMeta(); render();
+    toast(fmtDay(date) + " の体重を消した", "戻す", function(){
+      S.weights.splice(i, 0, gone); S.bw = bwNow(); saveWeights(); saveMeta(); render();
+    });
+  }
+  /* n日の移動平均。日々のブレを均さないと増減の向きが読めない */
+  function bwAvg(i, n){
+    var from = addDays(S.weights[i].date, -(n - 1)), sum = 0, c = 0;
+    for (var k = i; k >= 0; k--){
+      if (S.weights[k].date < from) break;
+      sum += S.weights[k].kg; c++;
+    }
+    return c ? sum / c : S.weights[i].kg;
+  }
+
   /* 自重種目は「体重＋追加した重り」が実際に動かした重さ */
-  function load(ex, w){ return (BW[ex] ? S.bw : 0) + w; }
+  function load(ex, w, date){
+    return (BW[ex] ? (date ? bwAt(date) : bwNow()) : 0) + w;
+  }
   function fmtW(ex, w){
     if (BW[ex]) return w > 0 ? "自重+" + fmtN(w) + "kg" : "自重";
     return fmtN(w) + "kg";
@@ -196,7 +250,7 @@
       var l = byDay[d].slice().sort(function(a,b){ return a.ts - b.ts; });
       var best = 0, top = l[0];
       l.forEach(function(s){
-        var v = e1rm(load(s.ex, s.w), s.r);
+        var v = e1rm(load(s.ex, s.w, s.date), s.r);
         if (v > best){ best = v; top = s; }
       });
       return {date:d, sets:l, best:best, top:top};
@@ -205,7 +259,7 @@
   function allTimeBest(ex, list){
     var b = 0;
     (list || rows()).forEach(function(s){
-      if (s.ex === ex) b = Math.max(b, e1rm(load(s.ex, s.w), s.r));
+      if (s.ex === ex) b = Math.max(b, e1rm(load(s.ex, s.w, s.date), s.r));
     });
     return b;
   }
@@ -219,7 +273,7 @@
     if (prCache && prCacheFor === src) return prCache;   // 実データとサンプルで別物
     var best = {}, ids = {};
     src.slice().sort(function(a,b){ return a.ts - b.ts; }).forEach(function(s){
-      var v = e1rm(load(s.ex, s.w), s.r);
+      var v = e1rm(load(s.ex, s.w, s.date), s.r);
       if (best[s.ex] !== undefined && v > best[s.ex] + 0.05) ids[s.id] = 1;
       if (best[s.ex] === undefined || v > best[s.ex]) best[s.ex] = v;
     });
@@ -236,7 +290,7 @@
     if (!m.std) return null;
     var best = allTimeBest(ex, list || real());
     if (!best) return null;
-    var ratio = best / S.bw, std = m.std;
+    var ratio = best / bwNow(), std = m.std;
     var score;                                     // 0〜4 の連続値
     if (ratio <= std[0]) score = Math.max(0, ratio / std[0]) - 1;
     else {
@@ -279,15 +333,14 @@
     } else {
       if (!m.std) return {none:true, why:"この種目は一般的な目安が無い。軽めから始めて記録を貯める。"};
       var li = overallLevel();
-      base = m.std[li] * S.bw;
-      if (BW[ex]) base = m.std[li] * S.bw;       // 自重種目の std は (体重+追加)÷体重
+      base = m.std[li] * bwNow();               // 自重種目の std は (体重+追加)÷体重
       src = "std";
-      why = "体重" + fmtN(S.bw) + "kg・" + LEVELS[li] + "の目安（1RM " + fmtN(base) + "kg）から";
+      why = "体重" + fmtN(bwNow()) + "kg・" + LEVELS[li] + "の目安（1RM " + fmtN(base) + "kg）から";
     }
 
     var heavy = base * pct1rm(lo);               // 回数が少ない側＝重い
     var light = base * pct1rm(hi);               // 回数が多い側＝軽い
-    if (BW[ex]){ heavy -= S.bw; light -= S.bw; } // 入力するのは「追加した重り」
+    if (BW[ex]){ heavy -= bwNow(); light -= bwNow(); } // 入力するのは「追加した重り」
 
     return {
       none:false, src:src, why:why,
@@ -305,9 +358,9 @@
     if (!m.std) return null;
     var inc = m.inc || 2.5;
     return m.std.map(function(ratio){
-      var one = ratio * S.bw;                       // そのレベルの1RM
+      var one = ratio * bwNow();                       // そのレベルの1RM
       var w = one * pct1rm(reps);
-      if (BW[ex]) w -= S.bw;                        // 入力するのは追加した重りだけ
+      if (BW[ex]) w -= bwNow();                        // 入力するのは追加した重りだけ
       return {one:one, w:Math.max(0, snap(w, inc))};
     });
   }
@@ -347,7 +400,7 @@
     return '<div><div class="v">' + v + '<span>' + unit + '</span></div><div class="k">' + k + '</div></div>';
   }
   function volOf(list){
-    var v = 0; list.forEach(function(s){ v += load(s.ex, s.w) * s.r; }); return v;
+    var v = 0; list.forEach(function(s){ v += load(s.ex, s.w, s.date) * s.r; }); return v;
   }
   function fmtVol(v){
     return v >= 10000 ? fmtN(v/1000) + " t" : Math.round(v).toLocaleString() + " kg";
@@ -588,7 +641,7 @@
 
     var note;
     if (lv){
-      var nx = lv.idx < 4 ? m.std[lv.idx + 1] * S.bw : null;
+      var nx = lv.idx < 4 ? m.std[lv.idx + 1] * bwNow() : null;
       note = 'いまの推定1RM <b>' + fmtN(lv.best) + 'kg</b>（体重比 ' + lv.ratio.toFixed(2) + '倍）。' +
         (nx ? '次の「' + LEVELS[lv.idx + 1] + '」まで 1RM であと <b>' + fmtN(nx - lv.best) + 'kg</b>。'
             : 'この種目はエリート域。');
@@ -932,7 +985,7 @@
     var box = $("lvBox"), list = rows();
     var cur = levelOf(S.ex, list);
     var html = '<div class="head"><strong>強さの物差し</strong>' +
-      '<span class="lvtop sub">体重 ' + fmtN(S.bw) + 'kg あたりの推定1RM</span></div>' +
+      '<span class="lvtop sub">体重 ' + fmtN(bwNow()) + 'kg あたりの推定1RM</span></div>' +
       (S.live ? "" : '<p class="foot-note" style="margin:0">いまはサンプルの数字。' +
         '最初のセットを記録すると自分の記録に切り替わる。</p>');
 
@@ -947,7 +1000,7 @@
         '<div class="lvtrack">' + seg + '</div>' +
         '<div class="lvscale">' + LEVELS.map(function(l){ return '<span>' + l + '</span>'; }).join("") +
         '</div></div>';
-      var m = meta(S.ex), nx = cur.idx < 4 ? m.std[cur.idx + 1] * S.bw : null;
+      var m = meta(S.ex), nx = cur.idx < 4 ? m.std[cur.idx + 1] * bwNow() : null;
       if (nx) html += '<p class="foot-note" style="margin:0">次の「' + LEVELS[cur.idx+1] +
         '」まで あと <b>' + fmtN(nx - cur.best) + 'kg</b>（1RM ' + fmtN(nx) + 'kg）</p>';
     } else {
@@ -1072,14 +1125,14 @@
   }
 
   function renderGrad(){
-    var box = $("grad"), target = S.bw + 20;
+    var box = $("grad"), target = bwNow() + 20;
     var ss = sessionsFor("ベンチプレス");
     var best = 0;
     ss.forEach(function(s){ best = Math.max(best, s.best); });
     var mainOK = false, mainDay = "";
     ss.forEach(function(s){
       var n = 0;
-      s.sets.forEach(function(x){ if (x.w >= S.bw && x.r >= 8) n++; });
+      s.sets.forEach(function(x){ if (x.w >= bwAt(s.date) && x.r >= 8) n++; });
       if (n >= 3){ mainOK = true; mainDay = s.date; }
     });
     var maxOK = best >= target;
@@ -1094,7 +1147,7 @@
         '<span>ベンチプレス推定MAX <b>' + fmtN(best) + 'kg</b> ／ 目標 <b>' + fmtN(target) +
         'kg</b>（体重＋20kg）</span></div>' +
       '<div class="crit"><span class="mk ' + (mainOK ? "up" : "flat") + '">' + (mainOK ? "✓" : "—") + '</span>' +
-        '<span>体重（' + fmtN(S.bw) + 'kg）で8回×3セット' +
+        '<span>体重（' + fmtN(bwNow()) + 'kg）で8回×3セット' +
         (mainOK ? '　<b>達成：' + fmtDay(mainDay) + '</b>' : '　未達') + '</span></div>' +
       '<p class="foot-note" style="margin:0">両方クリアしたら設定を「初中級」に切り替える。' +
         (S.level !== "beginner" ? '（いまは「' + esc(prog().label) + '」）' : '') + '</p>';
@@ -1102,7 +1155,12 @@
 
   /* ═══════════════ 描画：設定 ═══════════════ */
   function renderSettings(){
-    $("bwOut").textContent = fmtN(S.bw) + " kg";
+    $("bwOut").textContent = fmtN(bwNow()) + " kg";
+    var lw = latestWeight();
+    $("bwSub").textContent = lw
+      ? (lw.date === today() ? "今日 測った" : fmtDay(lw.date) + " が最後") +
+        " ／ 記録 " + S.weights.length + "件"
+      : "まだ測っていない。押すと今日のぶんとして記録する";
     $("tzSel").value = String(S.tz);
     $("restSel").value = String(S.rest);
     $("soundSel").value = String(S.sound);
@@ -1558,6 +1616,7 @@
     L.push("");
     L.push("ledger.sets  : " + describe("sets"));
     L.push("ledger.bak   : " + describe("bak"));
+    L.push("ledger.weights: " + describe("weights"));
     L.push("ledger.cache : " + describe("cache") + "  （旧版）");
     L.push("ledger.queue : " + describe("queue") + "  （旧版）");
     L.push("ledger.prefs : " + (rawKey("prefs") ? "あり" : "なし"));
@@ -1632,10 +1691,10 @@
     dropPR();
     renderClock();
     if (S.view === "today"){
-      renderMenu(); renderTally(); renderBackupNote();
+      renderMenu(); renderTally(); renderBwCard(); renderBackupNote();
       renderRail(); renderDeck(); renderLast(); renderToday();
     } else if (S.view === "ledger"){
-      renderStats(); renderCal(); renderCalDay(); renderBars(); renderHist();
+      renderStats(); renderBwChart(); renderCal(); renderCalDay(); renderBars(); renderHist();
     } else if (S.view === "stats"){
       renderChart(); renderLevels(); renderVolumeDone(); renderVolume(); renderGrad();
     } else {
@@ -1944,12 +2003,150 @@
       onOk:function(v){ S.r = Math.round(v); renderDeck(); }
     });
   }
-  function openBwPad(){
+  function openBwPad(date){
+    date = date || today();
+    var cur = weightOn(date), base = cur ? cur.kg : bwNow();
+    var q = [base, round1(base + 0.5), round1(base - 0.5)]
+      .filter(function(v){ return v >= 30 && v <= 200; });
     openPad({
-      title:"体重", unit:"kg", value:S.bw, dec:true, min:30, max:200,
-      hint:"推奨重量と強さの判定に使う",
-      quick:[S.bw, S.bw + 1, S.bw - 1].filter(function(v){ return v >= 30 && v <= 200; }),
-      onOk:function(v){ S.bw = round1(v); saveMeta(); render(); }
+      title:(date === today() ? "今日の体重" : fmtDay(date) + " の体重"),
+      unit:"kg", value:base, dec:true, min:30, max:200,
+      hint:"同じ条件で測ると比べやすい（起きてすぐ・トイレのあと）",
+      quick:q,
+      onOk:function(v){
+        v = round1(v);
+        var had = weightOn(date), before = had ? had.kg : null;
+        setWeight(v, date);
+        var last = null;
+        for (var i = 0; i < S.weights.length; i++){
+          if (S.weights[i].date < date) last = S.weights[i]; else break;
+        }
+        var d = last ? round1(v - last.kg) : 0;
+        toast("<b>" + fmtN(v) + "kg</b>" +
+          (last ? "（" + fmtDay(last.date) + " から " + (d > 0 ? "+" : "") + fmtN(d) + "kg）"
+                : "　最初の記録"),
+          before === null ? null : "元に戻す",
+          before === null ? null : function(){ setWeight(before, date); });
+      }
+    });
+  }
+
+  /* 今日タブの体重カード */
+  function renderBwCard(){
+    var box = $("bwCard"), t = today(), cur = weightOn(t);
+    box.innerHTML = "";
+    box.appendChild(el("span", "k", "体重"));
+    var mid = el("div", "mid");
+
+    if (cur){
+      var i = 0;
+      S.weights.forEach(function(x, k){ if (x.date === t) i = k; });
+      var prev = i > 0 ? S.weights[i - 1] : null;
+      var d = prev ? round1(cur.kg - prev.kg) : 0;
+      var cls = !prev ? "flat" : (d > 0.05 ? "up" : (d < -0.05 ? "down" : "flat"));
+      box.className = "bwcard";
+      mid.innerHTML =
+        '<div class="v">' + fmtN(cur.kg) + '<u>kg</u>' +
+        (prev ? '<em class="delta ' + cls + '">' + (d > 0 ? "+" : "") + fmtN(d) + '</em>' : '') + '</div>' +
+        '<div class="s">' + (prev ? fmtDay(prev.date) + " から" : "最初の記録") +
+        (S.weights.length >= 3 ? ' ／ 7日平均 ' + fmtN(bwAvg(i, 7)) + 'kg' : '') + '</div>';
+    } else {
+      var l = latestWeight();
+      box.className = "bwcard none";
+      mid.innerHTML =
+        '<div class="v" style="font-size:16px;color:var(--ink-3)">今日はまだ</div>' +
+        '<div class="s">' + (l ? "最後は " + fmtDay(l.date) + " の " + fmtN(l.kg) + "kg"
+          : "記録がまだ無い。いまは設定の " + fmtN(S.bw) + "kg で計算している。") + '</div>';
+    }
+    box.appendChild(mid);
+    var b = el("button", null, cur ? "直す" : "測る"); b.type = "button";
+    b.addEventListener("click", function(){ openBwPad(t); });
+    box.appendChild(b);
+  }
+
+  /* 積み上げタブの体重の推移 */
+  function renderBwChart(){
+    var box = $("bwBox");
+    if (!S.weights.length){
+      box.innerHTML = '<div class="top"><div class="eyebrow">体重の推移</div></div>' +
+        '<div class="empty">まだ記録が無い。「今日」タブの体重カードから測る。</div>';
+      return;
+    }
+    var from = addDays(today(), -119);
+    var ws = [], idx = [];
+    S.weights.forEach(function(x, i){ if (x.date >= from){ ws.push(x); idx.push(i); } });
+    if (!ws.length){ ws = S.weights.slice(-1); idx = [S.weights.length - 1]; }
+
+    var first = ws[0], last = ws[ws.length - 1];
+    var diff = round1(last.kg - first.kg);
+    var html = '<div class="top"><div class="eyebrow">体重の推移</div>' +
+      '<div class="num" style="font-size:12px;color:var(--ink-3)">' + ws.length + '回・直近120日</div></div>';
+
+    if (ws.length >= 2){
+      var W = 560, H = 150, PL = 38, PR = 48, PT = 14, PB = 24;
+      var t0 = Date.parse(first.date + "T12:00:00Z"), t1 = Date.parse(last.date + "T12:00:00Z");
+      var span = Math.max(1, t1 - t0);
+      var vals = ws.map(function(x){ return x.kg; });
+      var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+      if (max - min < 1){ max += 0.5; min -= 0.5; }
+      var pad = (max - min) * 0.2; min -= pad; max += pad;
+      var x = function(d){ return PL + (W - PL - PR) * ((Date.parse(d + "T12:00:00Z") - t0) / span); };
+      var y = function(v){ return PT + (H - PT - PB) * (1 - (v - min) / (max - min)); };
+      var pts = ws.map(function(q){ return x(q.date) + "," + y(q.kg); });
+      var avgPts = ws.map(function(q, k){ return x(q.date) + "," + y(bwAvg(idx[k], 7)); });
+
+      var svg = '<svg class="spark bw" viewBox="0 0 ' + W + ' ' + H +
+        '" role="img" aria-label="体重の推移">';
+      [0, 0.5, 1].forEach(function(f){
+        var v = min + (max - min) * f;
+        svg += '<line class="grid" x1="' + PL + '" y1="' + y(v) + '" x2="' + (W - PR) +
+          '" y2="' + y(v) + '"></line><text x="' + (PL - 6) + '" y="' + (y(v) + 3.5) +
+          '" text-anchor="end">' + fmtN(v) + '</text>';
+      });
+      svg += '<polyline class="line" points="' + pts.join(" ") + '"></polyline>';
+      if (ws.length >= 3) svg += '<polyline class="avg" points="' + avgPts.join(" ") + '"></polyline>';
+      ws.forEach(function(q, k){
+        var isLast = k === ws.length - 1;
+        svg += '<circle class="dot' + (isLast ? " last" : "") + '" cx="' + x(q.date) +
+          '" cy="' + y(q.kg) + '" r="' + (isLast ? 4.5 : 2.5) + '"></circle>';
+      });
+      svg += '<text class="val" x="' + (x(last.date) + 8) + '" y="' + (y(last.kg) + 4) + '">' +
+        fmtN(last.kg) + 'kg</text>';
+      svg += '<text x="' + PL + '" y="' + (H - 6) + '" text-anchor="start">' +
+        first.date.slice(5).replace("-", "/") + '</text>';
+      svg += '<text x="' + (W - PR) + '" y="' + (H - 6) + '" text-anchor="end">' +
+        last.date.slice(5).replace("-", "/") + '</text></svg>';
+      html += svg +
+        '<div class="bwlegend"><span class="a"><i></i>実測</span>' +
+        (ws.length >= 3 ? '<span class="b"><i></i>7日平均</span>' : '') +
+        '<span style="margin-left:auto">' + fmtDay(first.date) + ' から <b class="delta ' +
+        (diff > 0.05 ? "up" : (diff < -0.05 ? "down" : "flat")) + '">' +
+        (diff > 0 ? "+" : "") + fmtN(diff) + 'kg</b></span></div>';
+    } else {
+      html += '<div class="empty">2回目を記録すると線になる。</div>';
+    }
+
+    html += '<div class="bwlist">';
+    var recent = S.weights.slice(-10).reverse();
+    recent.forEach(function(q, k){
+      var older = recent[k + 1];
+      var d = older ? round1(q.kg - older.kg) : null;
+      html += '<div class="bwrow" data-d="' + q.date + '">' +
+        '<span class="d">' + fmtDay(q.date) + '</span>' +
+        '<button type="button" class="w">' + fmtN(q.kg) + 'kg</button>' +
+        '<span class="dl ' + (d === null ? "flat" : (d > 0.05 ? "up" : (d < -0.05 ? "down" : "flat"))) +
+        '">' + (d === null ? "—" : (d > 0 ? "+" : "") + fmtN(d)) + '</span>' +
+        '<button type="button" class="del" aria-label="' + q.date + ' の体重を消す">×</button></div>';
+    });
+    html += '</div><p class="foot-note" style="margin-top:8px">' +
+      '数字を押せば直せる。日々のブレは気にせず<b>7日平均の向き</b>を見る。' +
+      '自重種目のボリュームと推定1RMには、<b>その頃の体重</b>を使っている。</p>';
+    box.innerHTML = html;
+
+    Array.prototype.forEach.call(box.querySelectorAll(".bwrow"), function(row){
+      var date = row.getAttribute("data-d");
+      row.querySelector(".w").addEventListener("click", function(){ openBwPad(date); });
+      row.querySelector(".del").addEventListener("click", function(){ removeWeight(date); });
     });
   }
 
@@ -1963,6 +2160,7 @@
             prefs:{custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
                    offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound},
             menus:S.menus,
+            weights:S.weights,
             sets:S.sets};
   }
   function markExported(){ S.lastExport = Date.now(); saveMeta(); }
@@ -1984,6 +2182,16 @@
     });
     S.sets.sort(function(a,b){ return a.ts - b.ts; });
     if (d.prefs) applyPrefs(d.prefs);
+    if (Array.isArray(d.weights) && d.weights.length){
+      var haveW = {};
+      S.weights.forEach(function(x){ haveW[x.date] = 1; });
+      d.weights.forEach(function(x){
+        if (x && typeof x.kg === "number" && x.date && !haveW[x.date]){
+          haveW[x.date] = 1; S.weights.push({date:x.date, kg:x.kg, ts:x.ts || 0});
+        }
+      });
+      sortWeights(); S.bw = bwNow(); saveWeights();
+    }
     if (d.menus && Array.isArray(d.menus) && d.menus.length){ S.menus = d.menus; saveMenus(); }
     else if (d.program && typeof d.program === "object"){        /* ひとつ前の版の書き出し */
       Object.keys(d.program).forEach(function(id){
@@ -2147,6 +2355,11 @@
     var hadTz = !!(prefs && prefs.tz !== undefined);
     applyPrefs(prefs);
     S.menus = loadMenus();
+    var wl = LS.get("weights", null);
+    S.weights = Array.isArray(wl) ? wl.filter(function(x){
+      return x && typeof x.kg === "number" && x.date;
+    }) : [];
+    sortWeights();
     if (!menuById(S.level)) S.level = S.menus[0].id;   /* 消されたメニューを指していたら先頭へ */
     saveMenus();
     S.sets = loadSets();
@@ -2203,7 +2416,8 @@
   $("menuCopy").addEventListener("click", function(){ addMenu(true); });
   $("progBase").addEventListener("click", setAsBase);
 
-  $("bwOut").addEventListener("click", openBwPad);
+  /* openBwPad は日付を取る。そのまま渡すとクリックイベントが日付として入る */
+  $("bwOut").addEventListener("click", function(){ openBwPad(); });
   $("tzSel").addEventListener("change", function(e){ S.tz = e.target.value; saveMeta(); render(); });
   $("restSel").addEventListener("change", function(e){ S.rest = e.target.value; saveMeta(); });
   $("soundSel").addEventListener("change", function(e){
