@@ -115,9 +115,11 @@
     (list || rows()).forEach(function(s){ seen[s.date] = 1; });
     return Object.keys(seen).sort();
   }
+  /* サンプルは絶対に混ぜない。混ぜると最初の1セットを記録した瞬間に
+     「今日より前にジムへ行った日数」が 6 → 0 に落ちて Day が飛ぶ。 */
   function dayIndex(){
     var t = today();
-    var before = trainedDays().filter(function(d){ return d < t; }).length;
+    var before = trainedDays(real()).filter(function(d){ return d < t; }).length;
     var n = prog().days.length;
     return (((before + S.offset) % n) + n) % n;
   }
@@ -143,7 +145,7 @@
   }
   function setsTodayFor(ex){
     var t = today(), n = 0;
-    rows().forEach(function(s){ if (s.date === t && s.ex === ex) n++; });
+    real().forEach(function(s){ if (s.date === t && s.ex === ex) n++; });
     return n;
   }
   /* 種目ごとに「日」でまとめる。list を渡さなければ表示用 */
@@ -172,17 +174,18 @@
   /* それまでの自己ベストを超えていたら PR。
      1セットずつ全走査すると記録が積み上がるほど遅くなる（O(n^2)）ので、
      描画1回につき1度だけ全体を舐めて id の集合を作る。 */
-  var prCache = null;
-  function dropPR(){ prCache = null; }
+  var prCache = null, prCacheFor = null;
+  function dropPR(){ prCache = null; prCacheFor = null; }
   function prIds(list){
-    if (prCache) return prCache;
+    var src = list || rows();
+    if (prCache && prCacheFor === src) return prCache;   // 実データとサンプルで別物
     var best = {}, ids = {};
-    (list || rows()).slice().sort(function(a,b){ return a.ts - b.ts; }).forEach(function(s){
+    src.slice().sort(function(a,b){ return a.ts - b.ts; }).forEach(function(s){
       var v = e1rm(load(s.ex, s.w), s.r);
       if (best[s.ex] !== undefined && v > best[s.ex] + 0.05) ids[s.id] = 1;
       if (best[s.ex] === undefined || v > best[s.ex]) best[s.ex] = v;
     });
-    prCache = ids;
+    prCacheFor = src; prCache = ids;
     return ids;
   }
   function isPR(s, list){ return !!prIds(list)[s.id]; }
@@ -314,16 +317,17 @@
 
   /* ═══════════════ 描画：今日 ═══════════════ */
   function renderTally(){
-    var t = today(), list = rows().filter(function(s){ return s.date === t; });
+    var t = today(), list = real().filter(function(s){ return s.date === t; });
     var vol = volOf(list);
     $("tally").innerHTML =
       tile(vol >= 10000 ? fmtN(vol/1000) : Math.round(vol).toLocaleString(),
            vol >= 10000 ? "t" : "kg", "総ボリューム") +
       tile(list.length, "本", "セット数") +
-      tile(streakFrom(trainedDays()), "日", "連続");
+      tile(streakFrom(trainedDays(real())), "日", "連続");
     $("sampleNote").hidden = S.live;
     $("sampleText").textContent =
-      "これは表示確認用のダミー。入力欄には流し込まないので、最初のセットを記録した瞬間に全部消える。";
+      "「積み上げ」と「分析」だけダミーで埋めてある。この画面の Day・セット数・入力欄は" +
+      "本物の記録だけで動くので、最初の1セットを入れても数字は飛ばない。";
   }
 
   function renderMenu(){
@@ -557,7 +561,7 @@
   }
 
   function renderLast(){
-    var ss = sessionsFor(S.ex), t = today(), prev = null, cur = null;
+    var ss = sessionsFor(S.ex, real()), t = today(), prev = null, cur = null;
     for (var i = ss.length - 1; i >= 0; i--){ if (ss[i].date !== t){ prev = ss[i]; break; } }
     ss.forEach(function(s){ if (s.date === t) cur = s; });
     var card = $("lastCard");
@@ -580,7 +584,7 @@
 
   function renderToday(){
     var t = today();
-    var list = rows().filter(function(s){ return s.date === t; })
+    var list = real().filter(function(s){ return s.date === t; })
                      .sort(function(a,b){ return b.ts - a.ts; });
     var box = $("todayList");
     if (!list.length){
@@ -591,7 +595,7 @@
     box.className = "today-list";
     box.innerHTML = "";
     list.forEach(function(s, idx){
-      var pr = isPR(s);
+      var pr = isPR(s, real());
       var row = document.createElement("div");
       row.className = "row" + (pr ? " prset" : "");
       row.innerHTML =
