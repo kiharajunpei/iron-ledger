@@ -29,7 +29,7 @@
     custom:[], bars:{}, level:"beginner", bw:70, offset:0,
     tz:"local", rest:"auto", sound:"both", lastExport:0,
     ex:"ベンチプレス", w:60, r:8,
-    view:"today", open:{}, showRail:false,
+    view:"today", open:{}, showRail:false, program:null, ed:null,
     calMonth:null, calSel:null,
     restEnd:0, restTotal:0, restEx:"", restTick:null,
     toastTimer:null, lastUndo:null,
@@ -108,7 +108,21 @@
   function rows(){ return S.live ? S.sets : S.demo; }
   /* 判断用。サンプルは絶対に混ぜない（混ぜると入力欄に他人の数字が乗る） */
   function real(){ return S.sets; }
-  function prog(){ return PROGRAM[S.level]; }
+  /* 効いているプログラム。自分で変えた分があればそれ、無ければ既定。
+     既定（data.js の PROGRAM）は書き換えない。戻せなくなるので。 */
+  function prog(){
+    if (S.program && S.program[S.level]) return S.program[S.level];
+    return PROGRAM[S.level];
+  }
+  /* 編集用に、この段の自分用のコピーを用意する */
+  function ownProg(){
+    if (!S.program) S.program = {};
+    if (!S.program[S.level]) S.program[S.level] = clone(PROGRAM[S.level]);
+    return S.program[S.level];
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function saveProgram(){ LS.set("program", S.program); }
+  function isCustom(){ return !!(S.program && S.program[S.level]); }
 
   function trainedDays(list){
     var seen = {};
@@ -425,10 +439,15 @@
   /* 今の種目のメニュー上の目標レップ帯 */
   function rangeFor(ex){
     var found = null;
-    ["beginner","inter"].forEach(function(k){
-      PROGRAM[k].days.forEach(function(d){
+    function scan(p){
+      if (!p) return;
+      p.days.forEach(function(d){
         d.items.forEach(function(it){ if (it.ex === ex && !found) found = {lo:it.lo, hi:it.hi}; });
       });
+    }
+    scan(prog());                                   /* いま効いているものを優先 */
+    ["beginner","inter"].forEach(function(k){
+      scan(S.program && S.program[k]); scan(PROGRAM[k]);
     });
     return found || S.range || {lo:8, hi:12};
   }
@@ -1075,7 +1094,321 @@
       'そのときは上の<b>引っ越しコード</b>で移す。消えてはいない。' +
       (isStandalone() ? '<br>いまは<b>ホーム画面のアプリ</b>として開いている。' : '');
 
+    renderDayList();
     renderDiag();
+  }
+
+  /* ═══════════════ メニュー編集 ═══════════════
+     既定のプログラムは data.js のまま触らない。
+     変えたぶんだけ ledger.program に自分用のコピーとして持つ。 */
+  function openDayEditor(idx){
+    var p = prog();
+    if (!p.days[idx]) return;
+    S.ed = {idx:idx, day:clone(p.days[idx])};
+    $("editor").hidden = false;
+    document.body.style.overflow = "hidden";
+    renderEditor();
+    $("editor").scrollTop = 0;
+  }
+  function closeEditor(){
+    $("editor").hidden = true;
+    document.body.style.overflow = "";
+    S.ed = null;
+  }
+  function saveEditor(){
+    if (!S.ed) return;
+    var own = ownProg();
+    own.days[S.ed.idx] = S.ed.day;
+    saveProgram();
+    closeEditor();
+    render();
+    toast("メニューを保存した。");
+  }
+
+  function renderEditor(){
+    if (!S.ed) return;
+    var d = S.ed.day, body = $("edBody");
+    $("edTitle").textContent = "Day " + (S.ed.idx + 1) + " を編集";
+    body.innerHTML = "";
+
+    /* 名前とねらい */
+    var head = el("div", "ecard");
+    head.appendChild(fieldBtn("名前", d.name || "（なし）", function(){
+      openText({title:"Day の名前", value:d.name || "", okLabel:"決定",
+        hint:"短く。「胸」「背中＋肩」など。", onOk:function(v){
+          d.name = v.trim().slice(0, 24); closeText(); renderEditor();
+        }});
+    }));
+    head.appendChild(fieldBtn("ねらい", d.aim || "（なし）", function(){
+      openText({title:"この日のねらい", value:d.aim || "", okLabel:"決定",
+        hint:"メニューの上に出る一言。空でもいい。", onOk:function(v){
+          d.aim = v.trim().slice(0, 200); closeText(); renderEditor();
+        }});
+    }));
+    body.appendChild(head);
+
+    /* 種目 */
+    d.items.forEach(function(it, i){
+      var card = el("div", "ecard mi-card");
+
+      var top = el("div", "etop");
+      var mv = el("div", "emove");
+      mv.appendChild(iconBtn("▲", i === 0, function(){ swapItem(i, -1); }, "ひとつ上へ"));
+      mv.appendChild(iconBtn("▼", i === d.items.length - 1, function(){ swapItem(i, 1); }, "ひとつ下へ"));
+      top.appendChild(mv);
+
+      var nm = el("button", "ename");
+      nm.type = "button";
+      /* メモは下に専用の行がある。ここに出すと二重になる */
+      nm.innerHTML = esc(it.ex) +
+        '<small style="opacity:.65">タップで種目を差し替え</small>';
+      nm.style.cssText = "background:none;border:none;text-align:left;padding:0;color:inherit";
+      nm.addEventListener("click", function(){
+        openPicker("種目を差し替え", function(name){ it.ex = name; renderEditor(); });
+      });
+      top.appendChild(nm);
+
+      var del = el("button", "edel"); del.type = "button"; del.textContent = "×";
+      del.setAttribute("aria-label", it.ex + " を外す");
+      del.addEventListener("click", function(){
+        d.items.splice(i, 1); renderEditor();
+      });
+      top.appendChild(del);
+      card.appendChild(top);
+
+      /* セット数 */
+      var f1 = el("div", "efield");
+      f1.appendChild(el("span", null, "セット数"));
+      var st = el("div", "estep");
+      st.appendChild(stepBtn("−", function(){ it.sets = Math.max(1, it.sets - 1); renderEditor(); }));
+      st.appendChild(el("span", "v", String(it.sets)));
+      st.appendChild(stepBtn("＋", function(){ it.sets = Math.min(20, it.sets + 1); renderEditor(); }));
+      f1.appendChild(st);
+      card.appendChild(f1);
+
+      /* 回数のレンジ */
+      var f2 = el("div", "efield");
+      f2.appendChild(el("span", null, "回数"));
+      var rg = el("div", "estep");
+      rg.appendChild(numBtn(it.lo, function(){
+        openPad({title:it.ex + "：回数の下限", unit:"回", value:it.lo, dec:false, min:1, max:200,
+          hint:"重いほう。ここを下回ったら重量を下げる", quick:[5,8,10,12,15],
+          onOk:function(v){ it.lo = v; if (it.hi < v) it.hi = v; renderEditor(); }});
+      }));
+      rg.appendChild(el("span", null, "〜"));
+      rg.appendChild(numBtn(it.hi, function(){
+        openPad({title:it.ex + "：回数の上限", unit:"回", value:it.hi, dec:false, min:1, max:200,
+          hint:"ここまで回せたら次は重量を上げる", quick:[8,10,12,15,20],
+          onOk:function(v){ it.hi = Math.max(v, it.lo); renderEditor(); }});
+      }));
+      f2.appendChild(rg);
+      card.appendChild(f2);
+
+      /* メモ */
+      var f3 = el("div", "efield");
+      f3.appendChild(el("span", null, "メモ"));
+      var nb = el("button", "barsel"); nb.type = "button";
+      nb.style.cssText = "padding:6px 10px;max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+      nb.textContent = it.note ? it.note : "（なし）";
+      nb.addEventListener("click", function(){
+        openText({title:it.ex + " のメモ", value:it.note || "", okLabel:"決定",
+          hint:"メニューに小さく出る。フォームの注意など。空でもいい。",
+          onOk:function(v){
+            v = v.trim().slice(0, 120);
+            if (v) it.note = v; else delete it.note;
+            closeText(); renderEditor();
+          }});
+      });
+      f3.appendChild(nb);
+      card.appendChild(f3);
+
+      body.appendChild(card);
+    });
+
+    var add = el("button", "eadd"); add.type = "button"; add.textContent = "＋ 種目を足す";
+    add.addEventListener("click", function(){
+      openPicker("種目を足す", function(name){
+        var r = rangeFor(name);
+        d.items.push({ex:name, sets:3, lo:r.lo, hi:r.hi});
+        renderEditor();
+      });
+    });
+    body.appendChild(add);
+
+    var total = 0;
+    d.items.forEach(function(it){ total += it.sets; });
+    body.appendChild(el("div", "esum",
+      "この日は " + d.items.length + "種目・" + total + "セット（目安 " +
+      Math.round(total * 2.5) + "分）。保存するまで反映されない。"));
+
+    function swapItem(i, dir){
+      var j = i + dir;
+      if (j < 0 || j >= d.items.length) return;
+      var t = d.items[i]; d.items[i] = d.items[j]; d.items[j] = t;
+      renderEditor();
+    }
+  }
+
+  /* 小物 */
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function iconBtn(label, disabled, fn, aria){
+    var b = el("button", null, label); b.type = "button";
+    if (aria) b.setAttribute("aria-label", aria);
+    if (disabled) b.disabled = true; else b.addEventListener("click", fn);
+    return b;
+  }
+  function stepBtn(label, fn){
+    var b = el("button", null, label); b.type = "button";
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function numBtn(v, fn){
+    var b = el("button", "v", String(v)); b.type = "button";
+    b.style.cursor = "pointer";
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function fieldBtn(label, value, fn){
+    var f = el("div", "efield");
+    f.appendChild(el("span", null, label));
+    var b = el("button", "barsel", value); b.type = "button";
+    b.style.cssText = "padding:6px 10px;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    b.addEventListener("click", fn);
+    f.appendChild(b);
+    return f;
+  }
+
+  /* ── 種目ピッカー ── */
+  var pickOnPick = null;
+  function openPicker(title, onPick){
+    pickOnPick = onPick;
+    $("pickTitle").textContent = title;
+    var list = $("pickList");
+    list.innerHTML = "";
+
+    var free = el("button", null); free.type = "button";
+    free.innerHTML = '＋ 自由に入力<small>ここに無い種目を足す</small>';
+    free.addEventListener("click", function(){
+      closePicker();
+      openText({title:"種目名", value:"", okLabel:"決定", hint:"例：インクラインベンチ",
+        onOk:function(v){
+          v = v.trim().slice(0, 40);
+          if (!v) return;
+          if (S.custom.indexOf(v) === -1){ S.custom.push(v); saveMeta(); }
+          closeText();
+          if (onPick) onPick(v);
+        }});
+    });
+    list.appendChild(free);
+
+    /* 部位ごとに並べる。どこにも属さないものは最後 */
+    var seen = {}, groups = {};
+    MG_ORDER.forEach(function(m){ groups[m] = []; });
+    groups["その他"] = [];
+    Object.keys(EX).concat(S.custom).concat(real().map(function(x){ return x.ex; }))
+      .forEach(function(ex){
+        if (seen[ex]) return;
+        seen[ex] = 1;
+        var mg = (MG[ex] || [])[0];
+        mg = (mg || "").replace(/\+$/, "");
+        (groups[mg] ? groups[mg] : groups["その他"]).push(ex);
+      });
+
+    Object.keys(groups).forEach(function(m){
+      if (!groups[m].length) return;
+      list.appendChild(el("div", "grp", m));
+      groups[m].forEach(function(ex){
+        var b = el("button", null); b.type = "button";
+        var mt = meta(ex);
+        b.innerHTML = esc(ex) + '<small>' +
+          (unitLabel(ex) ? unitLabel(ex) + "・" : "") +
+          "インターバル " + (mt.rest || 90) + "秒" +
+          (mt.std ? "" : "・目安なし") + '</small>';
+        b.addEventListener("click", function(){
+          closePicker();
+          if (onPick) onPick(ex);
+        });
+        list.appendChild(b);
+      });
+    });
+    $("pickSheet").hidden = false;
+  }
+  function closePicker(){ $("pickSheet").hidden = true; pickOnPick = null; }
+
+  /* ── Day の一覧（設定タブ）── */
+  function renderDayList(){
+    var p = prog(), box = $("dayList"), cur = dayIndex();
+    box.innerHTML = "";
+    p.days.forEach(function(d, i){
+      var row = el("div", "dayrow" + (i === cur ? " cur" : ""));
+      row.appendChild(el("span", "n", "Day " + (i + 1)));
+
+      var t = el("button", "t"); t.type = "button";
+      var total = 0;
+      d.items.forEach(function(it){ total += it.sets; });
+      t.innerHTML = esc(d.name || "（名前なし）") +
+        '<small>' + d.items.length + '種目・' + total + 'セット</small>';
+      t.addEventListener("click", function(){ openDayEditor(i); });
+      row.appendChild(t);
+
+      var mv = el("div", "emove");
+      mv.appendChild(iconBtn("▲", i === 0, function(){ moveDay(i, -1); }, "ひとつ上へ"));
+      mv.appendChild(iconBtn("▼", i === p.days.length - 1, function(){ moveDay(i, 1); }, "ひとつ下へ"));
+      row.appendChild(mv);
+
+      var del = el("button", "edel"); del.type = "button"; del.textContent = "×";
+      del.setAttribute("aria-label", "Day " + (i+1) + " を消す");
+      del.addEventListener("click", function(){ removeDay(i); });
+      row.appendChild(del);
+
+      box.appendChild(row);
+    });
+
+    $("progNote").innerHTML =
+      (isCustom() ? '<b>このメニューは自分で変えたもの。</b>' : '既定のメニュー（動画の構成そのまま）。') +
+      ' Day を押すと中身を編集できる。' +
+      '<br>1周は <b>' + p.days.length + '日</b>。ローテーションは<b>ジムに行った日数</b>で進むので、' +
+      'Day を増減すると今日どこに当たるかも変わる。記録は消えない。';
+  }
+  function moveDay(i, dir){
+    var own = ownProg(), j = i + dir;
+    if (j < 0 || j >= own.days.length) return;
+    var t = own.days[i]; own.days[i] = own.days[j]; own.days[j] = t;
+    saveProgram(); render();
+  }
+  function removeDay(i){
+    var own = ownProg();
+    if (own.days.length <= 1){ toast("これ以上は減らせない。"); return; }
+    var name = own.days[i].name || ("Day " + (i+1));
+    if (!window.confirm("「" + name + "」をメニューから外す。記録は消えない。続ける？")) return;
+    var gone = clone(own.days[i]);
+    own.days.splice(i, 1);
+    saveProgram(); render();
+    toast("「" + esc(name) + "」を外した", "戻す", function(){
+      ownProg().days.splice(i, 0, gone); saveProgram(); render();
+    });
+  }
+  function addDay(){
+    var own = ownProg();
+    own.days.push({name:"新しい日", aim:"", items:[]});
+    saveProgram(); render();
+    openDayEditor(own.days.length - 1);
+  }
+  function resetProgram(){
+    if (!isCustom()){ toast("まだ変えていない。"); return; }
+    if (!window.confirm("「" + prog().label + "」のメニューを最初の状態に戻す。記録は消えない。続ける？")) return;
+    var gone = clone(S.program[S.level]);
+    delete S.program[S.level];
+    saveProgram(); render();
+    toast("最初のメニューに戻した", "やっぱり戻す", function(){
+      if (!S.program) S.program = {};
+      S.program[S.level] = gone; saveProgram(); render();
+    });
   }
 
   /* ═══════════════ 診断 ═══════════════
@@ -1111,6 +1444,8 @@
     L.push("ledger.cache : " + describe("cache") + "  （旧版）");
     L.push("ledger.queue : " + describe("queue") + "  （旧版）");
     L.push("ledger.prefs : " + (rawKey("prefs") ? "あり" : "なし"));
+    L.push("ledger.program: " + (rawKey("program")
+      ? Object.keys(S.program || {}).join(",") + " を自分で変えている" : "既定のまま"));
     L.push("");
     L.push("読み込めた記録: " + S.sets.length + "件");
     if (S.sets.length){
@@ -1509,6 +1844,7 @@
     return {app:"iron-ledger", v:2, at:new Date().toISOString(),
             prefs:{custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
                    offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound},
+            program:S.program || null,
             sets:S.sets};
   }
   function markExported(){ S.lastExport = Date.now(); saveMeta(); }
@@ -1530,6 +1866,7 @@
     });
     S.sets.sort(function(a,b){ return a.ts - b.ts; });
     if (d.prefs) applyPrefs(d.prefs);
+    if (d.program && typeof d.program === "object"){ S.program = d.program; saveProgram(); }
     save(); saveMeta(); refresh(); render();
     toast("読み込んだ：<b>" + added + "</b> セット追加" +
           (added < incoming.length ? "（" + (incoming.length - added) + "件は重複なので飛ばした）" : ""));
@@ -1683,6 +2020,8 @@
        ts（記録した瞬間）が正なので、そこから付け直す。 */
     var hadTz = !!(prefs && prefs.tz !== undefined);
     applyPrefs(prefs);
+    var pg = LS.get("program", null);
+    S.program = (pg && typeof pg === "object" && !Array.isArray(pg)) ? pg : null;
     S.sets = loadSets();
     S.demo = buildDemo();
 
@@ -1719,6 +2058,17 @@
   $("barSel").addEventListener("change", function(e){
     S.bars[S.ex] = Number(e.target.value); renderPlates(); saveMeta();
   });
+  $("dayEdit").addEventListener("click", function(){ openDayEditor(dayIndex()); });
+  $("edBack").addEventListener("click", function(){
+    if (window.confirm("保存せずに閉じる？")) closeEditor();
+  });
+  $("edSave").addEventListener("click", saveEditor);
+  $("pickClose").addEventListener("click", closePicker);
+  $("pickSheet").addEventListener("click", function(e){
+    if (e.target === $("pickSheet")) closePicker();
+  });
+  $("dayAdd").addEventListener("click", addDay);
+  $("progReset").addEventListener("click", resetProgram);
   $("dayPrev").addEventListener("click", function(){ S.offset--; saveMeta(); render(); });
   $("dayNext").addEventListener("click", function(){ S.offset++; saveMeta(); render(); });
   $("otherToggle").addEventListener("click", function(){ S.showRail = !S.showRail; renderRail(); });

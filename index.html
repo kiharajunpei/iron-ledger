@@ -43,6 +43,7 @@
         <div class="shift">
           <button type="button" id="dayPrev" aria-label="前の日のメニューにする">◀</button>
           <button type="button" id="dayNext" aria-label="次の日のメニューにする">▶</button>
+          <button type="button" class="ed" id="dayEdit" aria-label="このメニューを編集する">✎</button>
         </div>
       </div>
       <div class="bar"><i id="menuBar" style="width:0%"></i></div>
@@ -189,6 +190,16 @@
     </section>
 
     <section class="settings">
+      <div class="eyebrow">メニュー</div>
+      <div class="daylist" id="dayList"></div>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="barsel" id="dayAdd" style="padding:7px 12px">＋ Dayを足す</button>
+        <button type="button" class="barsel" id="progReset" style="padding:7px 12px">最初のメニューに戻す</button>
+      </span>
+      <p class="foot-note" style="margin:0" id="progNote"></p>
+    </section>
+
+    <section class="settings">
       <div class="eyebrow">からだ</div>
       <div class="field">
         <label>体重<span class="sub">推奨重量と強さの判定に使う</span></label>
@@ -306,6 +317,25 @@
     <div class="padquick" id="padQuick"></div>
     <div class="padgrid" id="padGrid"></div>
     <button type="button" class="padok" id="padOk">決定</button>
+  </div>
+</div>
+
+<div class="editor" id="editor" hidden role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="ehead">
+    <button type="button" id="edBack">← 戻る</button>
+    <div class="et" id="edTitle">Day</div>
+    <button type="button" class="prim" id="edSave">保存</button>
+  </div>
+  <div class="ebody" id="edBody"></div>
+</div>
+
+<div class="sheet" id="pickSheet" hidden role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="sheetcard">
+    <div class="sh">
+      <h3 id="pickTitle">種目を足す</h3>
+      <button type="button" class="close" id="pickClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="picklist" id="pickList"></div>
   </div>
 </div>
 
