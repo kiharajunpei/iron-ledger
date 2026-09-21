@@ -616,3 +616,7 @@ button, .tab, .padkey, .chip, .mi, .seg button, .steps button, .day-head{
 .dayrow .t small{display:block; font-size:11px; color:var(--ink-3)}
 .dayrow.cur{box-shadow:inset 3px 0 0 var(--accent)}
 .shift button.ed{font-size:12px}
+
+/* Day見出しはメニュー名を含むので大文字化しない */
+#dayHead{text-transform:none; letter-spacing:.04em}
+.dayrow .t small{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

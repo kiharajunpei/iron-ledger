@@ -29,7 +29,7 @@
     custom:[], bars:{}, level:"beginner", bw:70, offset:0,
     tz:"local", rest:"auto", sound:"both", lastExport:0,
     ex:"ベンチプレス", w:60, r:8,
-    view:"today", open:{}, showRail:false, program:null, ed:null,
+    view:"today", open:{}, showRail:false, menus:[], ed:null,
     calMonth:null, calSel:null,
     restEnd:0, restTotal:0, restEx:"", restTick:null,
     toastTimer:null, lastUndo:null,
@@ -108,21 +108,45 @@
   function rows(){ return S.live ? S.sets : S.demo; }
   /* 判断用。サンプルは絶対に混ぜない（混ぜると入力欄に他人の数字が乗る） */
   function real(){ return S.sets; }
-  /* 効いているプログラム。自分で変えた分があればそれ、無ければ既定。
-     既定（data.js の PROGRAM）は書き換えない。戻せなくなるので。 */
-  function prog(){
-    if (S.program && S.program[S.level]) return S.program[S.level];
-    return PROGRAM[S.level];
-  }
-  /* 編集用に、この段の自分用のコピーを用意する */
-  function ownProg(){
-    if (!S.program) S.program = {};
-    if (!S.program[S.level]) S.program[S.level] = clone(PROGRAM[S.level]);
-    return S.program[S.level];
-  }
+  /* メニューは配列で持つ。中身も、名前も、何本あるかも、既定そのものも変えられる。
+     data.js の PROGRAM は「工場出荷の形」として残し、ここでは書き換えない。
+       days : いま使っている中身
+       base : この人にとっての既定（「いまの形を既定にする」で入る）
+              null のときは、作り付けのメニューなら PROGRAM が既定 */
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
-  function saveProgram(){ LS.set("program", S.program); }
-  function isCustom(){ return !!(S.program && S.program[S.level]); }
+  function saveMenus(){ LS.set("menus", {v:1, list:S.menus}); }
+
+  function loadMenus(){
+    var m = LS.get("menus", null);
+    if (m && Array.isArray(m.list) && m.list.length) return m.list;
+    /* ひとつ前の版（ledger.program に段ごとの上書きを置いていた）から拾う */
+    var legacy = LS.get("program", null);
+    return ["beginner","inter"].map(function(id){
+      var src = (legacy && legacy[id]) ? legacy[id] : PROGRAM[id];
+      return {id:id, label:src.label, cycle:src.cycle, days:clone(src.days), base:null};
+    });
+  }
+  function menuById(id){
+    for (var i = 0; i < S.menus.length; i++) if (S.menus[i].id === id) return S.menus[i];
+    return null;
+  }
+  function prog(){ return menuById(S.level) || S.menus[0]; }
+  function ownProg(){ return prog(); }          /* もう全部が自分のもの */
+  function factory(id){ return PROGRAM[id] || null; }
+  function baseDays(m){
+    if (m.base) return m.base;
+    var f = factory(m.id);
+    return f ? f.days : null;
+  }
+  function isCustomOf(m){
+    var b = m.base || (factory(m.id) ? factory(m.id).days : null);
+    return !b || JSON.stringify(m.days) !== JSON.stringify(b);
+  }
+  function isCustom(){
+    var m = prog(), b = baseDays(m);
+    if (!b) return true;
+    return JSON.stringify(m.days) !== JSON.stringify(b);
+  }
 
   function trainedDays(list){
     var seen = {};
@@ -413,7 +437,8 @@
     var pct = totalSets ? Math.round(doneSets / totalSets * 100) : 0;
     $("menuBar").style.width = pct + "%";
     $("menuFoot").textContent =
-      prog().label + "・" + prog().cycle + " ／ 今日 " + doneSets + " / " + totalSets +
+      prog().label + (prog().cycle ? "・" + prog().cycle : "") +
+      " ／ 今日 " + doneSets + " / " + totalSets +
       " セット（目安 " + Math.round(totalSets * 2.5) + "分・" + pct + "%）" +
       (pct >= 100 ? " — 完了。明日は Day " +
         (((dayIndex() + 1) % prog().days.length) + 1) + "。" : "");
@@ -446,9 +471,8 @@
       });
     }
     scan(prog());                                   /* いま効いているものを優先 */
-    ["beginner","inter"].forEach(function(k){
-      scan(S.program && S.program[k]); scan(PROGRAM[k]);
-    });
+    S.menus.forEach(scan);
+    ["beginner","inter"].forEach(function(k){ scan(PROGRAM[k]); });
     return found || S.range || {lo:8, hi:12};
   }
 
@@ -460,7 +484,9 @@
     if (!S.showRail) return;
 
     var seen = {}, all = [];
-    PROGRAM.beginner.days.concat(PROGRAM.inter.days).forEach(function(d){
+    var allDays = [];
+    S.menus.forEach(function(m){ allDays = allDays.concat(m.days); });
+    allDays.concat(PROGRAM.beginner.days, PROGRAM.inter.days).forEach(function(d){
       d.items.forEach(function(it){ if (!seen[it.ex]){ seen[it.ex] = 1; all.push(it.ex); } });
     });
     S.custom.concat(real().map(function(s){ return s.ex; })).forEach(function(e){
@@ -1071,13 +1097,11 @@
         '<span>体重（' + fmtN(S.bw) + 'kg）で8回×3セット' +
         (mainOK ? '　<b>達成：' + fmtDay(mainDay) + '</b>' : '　未達') + '</span></div>' +
       '<p class="foot-note" style="margin:0">両方クリアしたら設定を「初中級」に切り替える。' +
-        (S.level === "inter" ? '（いまは初中級メニュー）' : '') + '</p>';
+        (S.level !== "beginner" ? '（いまは「' + esc(prog().label) + '」）' : '') + '</p>';
   }
 
   /* ═══════════════ 描画：設定 ═══════════════ */
   function renderSettings(){
-    $("lvBeginner").setAttribute("aria-pressed", S.level === "beginner" ? "true" : "false");
-    $("lvInter").setAttribute("aria-pressed", S.level === "inter" ? "true" : "false");
     $("bwOut").textContent = fmtN(S.bw) + " kg";
     $("tzSel").value = String(S.tz);
     $("restSel").value = String(S.rest);
@@ -1094,6 +1118,7 @@
       'そのときは上の<b>引っ越しコード</b>で移す。消えてはいない。' +
       (isStandalone() ? '<br>いまは<b>ホーム画面のアプリ</b>として開いている。' : '');
 
+    renderMenuList();
     renderDayList();
     renderDiag();
   }
@@ -1119,7 +1144,7 @@
     if (!S.ed) return;
     var own = ownProg();
     own.days[S.ed.idx] = S.ed.day;
-    saveProgram();
+    saveMenus();
     closeEditor();
     render();
     toast("メニューを保存した。");
@@ -1369,17 +1394,23 @@
       box.appendChild(row);
     });
 
+    $("dayHead").textContent = "「" + p.label + "」の Day";
+    var hasOwnBase = !!p.base, fac = factory(p.id);
     $("progNote").innerHTML =
-      (isCustom() ? '<b>このメニューは自分で変えたもの。</b>' : '既定のメニュー（動画の構成そのまま）。') +
+      (isCustom() ? '<b>いまの形は既定と違う。</b>' : '既定どおり。') +
       ' Day を押すと中身を編集できる。' +
       '<br>1周は <b>' + p.days.length + '日</b>。ローテーションは<b>ジムに行った日数</b>で進むので、' +
-      'Day を増減すると今日どこに当たるかも変わる。記録は消えない。';
+      'Day を増減すると今日どこに当たるかも変わる。記録は消えない。' +
+      '<br>「既定に戻す」の戻り先は ' +
+      (hasOwnBase ? '<b>自分で決めた既定</b>（いまの形を既定にする、で更新）'
+                  : (fac ? '<b>作り付けの形</b>（動画の構成そのまま）'
+                         : '<b>まだ無い</b>。「いまの形を既定にする」で決める')) + '。';
   }
   function moveDay(i, dir){
     var own = ownProg(), j = i + dir;
     if (j < 0 || j >= own.days.length) return;
     var t = own.days[i]; own.days[i] = own.days[j]; own.days[j] = t;
-    saveProgram(); render();
+    saveMenus(); render();
   }
   function removeDay(i){
     var own = ownProg();
@@ -1388,26 +1419,112 @@
     if (!window.confirm("「" + name + "」をメニューから外す。記録は消えない。続ける？")) return;
     var gone = clone(own.days[i]);
     own.days.splice(i, 1);
-    saveProgram(); render();
+    saveMenus(); render();
     toast("「" + esc(name) + "」を外した", "戻す", function(){
-      ownProg().days.splice(i, 0, gone); saveProgram(); render();
+      ownProg().days.splice(i, 0, gone); saveMenus(); render();
     });
   }
   function addDay(){
     var own = ownProg();
     own.days.push({name:"新しい日", aim:"", items:[]});
-    saveProgram(); render();
+    saveMenus(); render();
     openDayEditor(own.days.length - 1);
   }
+  /* 「いまの形を既定にする」＝ この人にとっての戻り先を差し替える。
+     作り付けの形（data.js）は残るので、そこへも戻せる。 */
+  function setAsBase(){
+    var m = prog();
+    if (!window.confirm("「" + m.label + "」のいまの形を既定にする。\n以後「既定に戻す」はここへ戻る。続ける？")) return;
+    var prev = m.base ? clone(m.base) : null;
+    m.base = clone(m.days);
+    saveMenus(); render();
+    toast("いまの形を既定にした", "取り消す", function(){
+      prog().base = prev; saveMenus(); render();
+    });
+  }
   function resetProgram(){
-    if (!isCustom()){ toast("まだ変えていない。"); return; }
-    if (!window.confirm("「" + prog().label + "」のメニューを最初の状態に戻す。記録は消えない。続ける？")) return;
-    var gone = clone(S.program[S.level]);
-    delete S.program[S.level];
-    saveProgram(); render();
-    toast("最初のメニューに戻した", "やっぱり戻す", function(){
-      if (!S.program) S.program = {};
-      S.program[S.level] = gone; saveProgram(); render();
+    var m = prog(), b = baseDays(m);
+    if (!b){ toast("このメニューにはまだ既定が無い。「いまの形を既定にする」を先に。"); return; }
+    if (JSON.stringify(m.days) === JSON.stringify(b)){ toast("すでに既定のまま。"); return; }
+    var where = m.base ? "自分で決めた既定" : "作り付けの形";
+    if (!window.confirm("「" + m.label + "」を" + where + "に戻す。記録は消えない。続ける？")) return;
+    var gone = clone(m.days);
+    m.days = clone(b);
+    saveMenus(); render();
+    toast(where + "に戻した", "やっぱり戻す", function(){
+      prog().days = gone; saveMenus(); render();
+    });
+  }
+
+  /* ── メニューそのものの出し入れ ── */
+  function renderMenuList(){
+    var box = $("menuList2");
+    box.innerHTML = "";
+    S.menus.forEach(function(m, i){
+      var row = el("div", "dayrow" + (m.id === S.level ? " cur" : ""));
+      row.appendChild(el("span", "n", m.id === S.level ? "使用中" : ""));
+
+      var t = el("button", "t"); t.type = "button";
+      var sets = 0;
+      m.days.forEach(function(d){ d.items.forEach(function(it){ sets += it.sets; }); });
+      t.innerHTML = esc(m.label) + '<small>' + esc(m.cycle || "") + ' ・ ' +
+        m.days.length + 'Day ・ 全' + sets + 'セット</small>';
+      t.addEventListener("click", function(){
+        S.level = m.id; S.offset = 0; saveMeta(); render();
+      });
+      row.appendChild(t);
+
+      var ed = el("button", "edel"); ed.type = "button"; ed.textContent = "✎";
+      ed.setAttribute("aria-label", m.label + " の名前を変える");
+      ed.addEventListener("click", function(){ editMenuMeta(m); });
+      row.appendChild(ed);
+
+      var del = el("button", "edel"); del.type = "button"; del.textContent = "×";
+      del.setAttribute("aria-label", m.label + " を消す");
+      del.addEventListener("click", function(){ removeMenu(i); });
+      row.appendChild(del);
+
+      box.appendChild(row);
+    });
+  }
+  function editMenuMeta(m){
+    openText({title:"メニューの名前", value:m.label, okLabel:"決定",
+      hint:"「初心者」「ジムA」「自宅」など。", onOk:function(v){
+        v = v.trim().slice(0, 24);
+        if (v) m.label = v;
+        closeText();
+        openText({title:"周期の説明", value:m.cycle || "", okLabel:"決定",
+          hint:"画面に小さく出るだけ。「7日で1周」「5分割」など。空でもいい。",
+          onOk:function(w){
+            m.cycle = w.trim().slice(0, 24);
+            closeText(); saveMenus(); render();
+          }});
+      }});
+  }
+  function addMenu(copy){
+    var src = copy ? prog() : null;
+    var m = {
+      id:"m" + Date.now(),
+      label:copy ? prog().label + " のコピー" : "新しいメニュー",
+      cycle:copy ? (src.cycle || "") : "",
+      days:copy ? clone(src.days) : [{name:"Day 1", aim:"", items:[]}],
+      base:null
+    };
+    S.menus.push(m);
+    S.level = m.id; S.offset = 0;
+    saveMenus(); saveMeta(); render();
+    if (!copy) openDayEditor(0); else toast("「" + esc(m.label) + "」を作った。");
+  }
+  function removeMenu(i){
+    if (S.menus.length <= 1){ toast("これ以上は減らせない。"); return; }
+    var m = S.menus[i];
+    if (!window.confirm("メニュー「" + m.label + "」を消す。記録は消えない。続ける？")) return;
+    var gone = clone(m);
+    S.menus.splice(i, 1);
+    if (S.level === m.id){ S.level = S.menus[0].id; S.offset = 0; saveMeta(); }
+    saveMenus(); render();
+    toast("「" + esc(m.label) + "」を消した", "戻す", function(){
+      S.menus.splice(i, 0, gone); S.level = gone.id; saveMenus(); saveMeta(); render();
     });
   }
 
@@ -1445,7 +1562,8 @@
     L.push("ledger.queue : " + describe("queue") + "  （旧版）");
     L.push("ledger.prefs : " + (rawKey("prefs") ? "あり" : "なし"));
     L.push("ledger.program: " + (rawKey("program")
-      ? Object.keys(S.program || {}).join(",") + " を自分で変えている" : "既定のまま"));
+      ? S.menus.map(function(m){ return m.label + (isCustomOf(m) ? "*" : ""); }).join(" / ")
+      : "既定のまま") + "  （* は既定と違う）");
     L.push("");
     L.push("読み込めた記録: " + S.sets.length + "件");
     if (S.sets.length){
@@ -1844,7 +1962,7 @@
     return {app:"iron-ledger", v:2, at:new Date().toISOString(),
             prefs:{custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
                    offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound},
-            program:S.program || null,
+            menus:S.menus,
             sets:S.sets};
   }
   function markExported(){ S.lastExport = Date.now(); saveMeta(); }
@@ -1866,7 +1984,15 @@
     });
     S.sets.sort(function(a,b){ return a.ts - b.ts; });
     if (d.prefs) applyPrefs(d.prefs);
-    if (d.program && typeof d.program === "object"){ S.program = d.program; saveProgram(); }
+    if (d.menus && Array.isArray(d.menus) && d.menus.length){ S.menus = d.menus; saveMenus(); }
+    else if (d.program && typeof d.program === "object"){        /* ひとつ前の版の書き出し */
+      Object.keys(d.program).forEach(function(id){
+        var t = menuById(id);
+        if (t) t.days = clone(d.program[id].days);
+      });
+      saveMenus();
+    }
+    if (!menuById(S.level)) S.level = S.menus[0].id;
     save(); saveMeta(); refresh(); render();
     toast("読み込んだ：<b>" + added + "</b> セット追加" +
           (added < incoming.length ? "（" + (incoming.length - added) + "件は重複なので飛ばした）" : ""));
@@ -1972,7 +2098,7 @@
     if (Array.isArray(d.custom)) S.custom = d.custom;
     if (d.bars && typeof d.bars === "object") S.bars = d.bars;
     else if (typeof d.bar === "number") S.bars = {};          // 旧版の共通バー設定は捨てる
-    if (d.level === "beginner" || d.level === "inter") S.level = d.level;
+    if (typeof d.level === "string" && d.level) S.level = d.level;
     if (typeof d.bw === "number" && d.bw >= 30 && d.bw <= 200) S.bw = d.bw;
     if (typeof d.offset === "number") S.offset = d.offset;
     if (d.tz === "local" || d.tz === "0" || d.tz === "9" || d.tz === 0 || d.tz === 9) S.tz = String(d.tz);
@@ -2020,8 +2146,9 @@
        ts（記録した瞬間）が正なので、そこから付け直す。 */
     var hadTz = !!(prefs && prefs.tz !== undefined);
     applyPrefs(prefs);
-    var pg = LS.get("program", null);
-    S.program = (pg && typeof pg === "object" && !Array.isArray(pg)) ? pg : null;
+    S.menus = loadMenus();
+    if (!menuById(S.level)) S.level = S.menus[0].id;   /* 消されたメニューを指していたら先頭へ */
+    saveMenus();
     S.sets = loadSets();
     S.demo = buildDemo();
 
@@ -2072,8 +2199,9 @@
   $("dayPrev").addEventListener("click", function(){ S.offset--; saveMeta(); render(); });
   $("dayNext").addEventListener("click", function(){ S.offset++; saveMeta(); render(); });
   $("otherToggle").addEventListener("click", function(){ S.showRail = !S.showRail; renderRail(); });
-  $("lvBeginner").addEventListener("click", function(){ S.level = "beginner"; S.offset = 0; saveMeta(); render(); });
-  $("lvInter").addEventListener("click", function(){ S.level = "inter"; S.offset = 0; saveMeta(); render(); });
+  $("menuAdd").addEventListener("click", function(){ addMenu(false); });
+  $("menuCopy").addEventListener("click", function(){ addMenu(true); });
+  $("progBase").addEventListener("click", setAsBase);
 
   $("bwOut").addEventListener("click", openBwPad);
   $("tzSel").addEventListener("change", function(e){ S.tz = e.target.value; saveMeta(); render(); });

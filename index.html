@@ -178,23 +178,25 @@
   <section class="view" id="viewSetup" hidden>
 
     <section class="settings">
-      <div class="eyebrow">プログラム</div>
-      <div class="seg" role="group" aria-label="プログラムのレベル">
-        <button type="button" id="lvBeginner" aria-pressed="true">初心者<small>7日で1周</small></button>
-        <button type="button" id="lvInter" aria-pressed="false">初中級<small>5分割</small></button>
-      </div>
+      <div class="eyebrow">メニュー</div>
+      <div class="daylist" id="menuList2"></div>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="barsel" id="menuAdd" style="padding:7px 12px">＋ 空のメニュー</button>
+        <button type="button" class="barsel" id="menuCopy" style="padding:7px 12px">＋ いまのをコピー</button>
+      </span>
       <p class="foot-note" style="margin:0">
-        メニューは動画「男磨き完全版・ボディメイク編」の構成をそのまま組んだもの。
+        名前を押すと<b>そのメニューに切り替わる</b>。✎ で名前と周期、Day は下で編集する。
         ローテーションは<b>カレンダーではなくジムに行った回数で進む</b>ので、行けなかった日があっても部位は飛ばない。
       </p>
     </section>
 
     <section class="settings">
-      <div class="eyebrow">メニュー</div>
+      <div class="eyebrow" id="dayHead">Day</div>
       <div class="daylist" id="dayList"></div>
       <span style="display:flex;gap:6px;flex-wrap:wrap">
         <button type="button" class="barsel" id="dayAdd" style="padding:7px 12px">＋ Dayを足す</button>
-        <button type="button" class="barsel" id="progReset" style="padding:7px 12px">最初のメニューに戻す</button>
+        <button type="button" class="barsel" id="progBase" style="padding:7px 12px">いまの形を既定にする</button>
+        <button type="button" class="barsel" id="progReset" style="padding:7px 12px">既定に戻す</button>
       </span>
       <p class="foot-note" style="margin:0" id="progNote"></p>
     </section>
