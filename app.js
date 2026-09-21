@@ -27,7 +27,7 @@
   var S = {
     sets:[], demo:[], live:false,
     custom:[], bars:{}, level:"beginner", bw:70, offset:0,
-    tz:"local", rest:"auto", sound:"both",
+    tz:"local", rest:"auto", sound:"both", lastExport:0,
     ex:"ベンチプレス", w:60, r:8,
     view:"today", open:{}, showRail:false,
     calMonth:null, calSel:null,
@@ -316,6 +316,45 @@
   }
 
   /* ═══════════════ 描画：今日 ═══════════════ */
+  /* ホーム画面に追加したアプリとして開かれているか。
+     iOS ではこれが Safari と別の保管庫になるので、記録が見えなくなる。 */
+  function isStandalone(){
+    try {
+      return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+             navigator.standalone === true;
+    } catch(e){ return false; }
+  }
+
+  /* 記録がこの端末にしか無いことの手当て。煽らない。出すのは本当に要るときだけ。 */
+  function renderBackupNote(){
+    var box = $("backupNote"), txt = $("backupText"), n = real().length;
+    box.innerHTML = '<b>控え</b><span id="backupText"></span>';
+    txt = $("backupText");
+
+    var msg = null, label = null;
+    if (isStandalone() && n === 0){
+      msg = "ホーム画面のアプリと Safari は、同じURLでも別の保管庫になる（iOSの仕様）。" +
+            "Safari で記録したぶんはここには出ない。消えてはいないので、" +
+            "Safari で開いて「引っ越しコード → コピー」、ここで「貼り付け」。";
+      label = "設定をひらく";
+    } else if (n >= 20) {
+      var days = S.lastExport ? Math.floor((Date.now() - S.lastExport) / 86400000) : null;
+      if (days === null || days >= 21){
+        msg = n + "セットぶんが、この端末の中にしか無い。" +
+              (days === null ? "まだ一度も控えを取っていない。" : "前の控えから" + days + "日。") +
+              "サイトデータを消すと一緒に消える。";
+        label = "控えを取る";
+      }
+    }
+    if (!msg){ box.hidden = true; return; }
+    box.hidden = false;
+    txt.textContent = msg;
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = label;
+    b.addEventListener("click", function(){ setView("setup"); });
+    box.appendChild(b);
+  }
+
   function renderTally(){
     var t = today(), list = real().filter(function(s){ return s.date === t; });
     var vol = volOf(list);
@@ -1022,6 +1061,16 @@
     $("restSel").value = String(S.rest);
     $("soundSel").value = String(S.sound);
     $("dataCount").textContent = S.sets.length + " セット／" + trainedDays(S.sets).length + " 日ぶん";
+
+    var host = "";
+    try { host = location.host || "この端末"; } catch(e){ host = "この端末"; }
+    $("originNote").innerHTML =
+      '記録は <b>' + esc(host) + '</b> ごとに分かれて入っている。<b>パスは関係ない</b>ので、' +
+      '同じホスト名なら <code>/iron-ledger/</code> でも <code>/別の名前/</code> でも同じ記録が出る。' +
+      '<br>ホスト名が変わると（独自ドメインにした・別のアカウントに移した）別物になる。' +
+      '<b>iOSでは「ホーム画面に追加」したアプリと Safari も別物</b>。' +
+      'そのときは上の<b>引っ越しコード</b>で移す。消えてはいない。' +
+      (isStandalone() ? '<br>いまは<b>ホーム画面のアプリ</b>として開いている。' : '');
   }
 
   /* ═══════════════ 画面の切り替え ═══════════════ */
@@ -1041,7 +1090,8 @@
     dropPR();
     renderClock();
     if (S.view === "today"){
-      renderMenu(); renderTally(); renderRail(); renderDeck(); renderLast(); renderToday();
+      renderMenu(); renderTally(); renderBackupNote();
+      renderRail(); renderDeck(); renderLast(); renderToday();
     } else if (S.view === "ledger"){
       renderStats(); renderCal(); renderCalDay(); renderBars(); renderHist();
     } else if (S.view === "stats"){
@@ -1249,7 +1299,8 @@
   }
   function saveMeta(){
     LS.set("prefs", {custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
-                     offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound});
+                     offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound,
+                     lastExport:S.lastExport});
   }
 
   function logSet(){
@@ -1340,18 +1391,56 @@
     });
   }
 
-  /* ═══════════════ 書き出し／読み込み ═══════════════ */
+  /* ═══════════════ 書き出し／読み込み ═══════════════
+     記録はこの端末の localStorage にしか無い。そして localStorage は
+     「https + ホスト名」ごとに別物で、ホーム画面に追加したアプリと
+     Safari でも別の保管庫になる（iOSの仕様）。
+     → だから引っ越しの手段が無いと、URLを変えた瞬間に過去が消えたように見える。 */
+  function payload(){
+    return {app:"iron-ledger", v:2, at:new Date().toISOString(),
+            prefs:{custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
+                   offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound},
+            sets:S.sets};
+  }
+  function markExported(){ S.lastExport = Date.now(); saveMeta(); }
+
+  /* 取り込みは常に追加。重複は id で飛ばすので、何度読んでも増えない */
+  function applyImport(d){
+    var incoming = (d && Array.isArray(d.sets)) ? d.sets : null;
+    if (!incoming){ toast("読めなかった（sets が無い）"); return false; }
+    var have = {};
+    S.sets.forEach(function(x){ have[x.id] = 1; });
+    var added = 0;
+    incoming.forEach(function(x){
+      if (!x || typeof x.w !== "number" || typeof x.r !== "number" || !x.ex) return;
+      var id = x.id || ("i" + x.ts + "-" + x.ex);
+      if (have[id]) return;
+      have[id] = 1; added++;
+      S.sets.push({id:id, ts:x.ts || Date.parse(x.date || "") || Date.now(),
+                   date:x.date || ymd(x.ts || Date.now()), ex:x.ex, w:x.w, r:x.r});
+    });
+    S.sets.sort(function(a,b){ return a.ts - b.ts; });
+    if (d.prefs) applyPrefs(d.prefs);
+    save(); saveMeta(); refresh(); render();
+    toast("読み込んだ：<b>" + added + "</b> セット追加" +
+          (added < incoming.length ? "（" + (incoming.length - added) + "件は重複なので飛ばした）" : ""));
+    return true;
+  }
+  function parseAndImport(text){
+    var d;
+    try { d = JSON.parse(String(text).trim()); }
+    catch(e){ toast("読めなかった（コードが途中で切れているかも）"); return; }
+    applyImport(d);
+  }
+
   function exportData(){
-    var payload = {app:"iron-ledger", v:2, at:new Date().toISOString(),
-                   prefs:{custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
-                          offset:S.offset, tz:S.tz, rest:S.rest, sound:S.sound},
-                   sets:S.sets};
-    var blob = new Blob([JSON.stringify(payload, null, 1)], {type:"application/json"});
+    var blob = new Blob([JSON.stringify(payload(), null, 1)], {type:"application/json"});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url; a.download = "iron-ledger-" + today() + ".json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    markExported(); render();
     toast("書き出した。端末を変えるときはこれを読み込む。");
   }
   function importData(){
@@ -1361,31 +1450,67 @@
       var f = inp.files && inp.files[0];
       if (!f) return;
       var fr = new FileReader();
-      fr.onload = function(){
-        var d;
-        try { d = JSON.parse(String(fr.result)); } catch(e){ toast("読めなかった（JSONではない）"); return; }
-        var incoming = Array.isArray(d && d.sets) ? d.sets : null;
-        if (!incoming){ toast("読めなかった（sets が無い）"); return; }
-        var have = {};
-        S.sets.forEach(function(s){ have[s.id] = 1; });
-        var added = 0;
-        incoming.forEach(function(s){
-          if (!s || typeof s.w !== "number" || typeof s.r !== "number" || !s.ex) return;
-          var id = s.id || ("i" + s.ts + "-" + s.ex);
-          if (have[id]) return;
-          have[id] = 1; added++;
-          S.sets.push({id:id, ts:s.ts || Date.parse(s.date || "") || Date.now(),
-                       date:s.date || ymd(s.ts || Date.now()), ex:s.ex, w:s.w, r:s.r});
-        });
-        S.sets.sort(function(a,b){ return a.ts - b.ts; });
-        if (d.prefs) applyPrefs(d.prefs);
-        save(); saveMeta(); refresh(); render();
-        toast("読み込んだ：<b>" + added + "</b> セット追加（重複は飛ばした）");
-      };
+      fr.onload = function(){ parseAndImport(fr.result); };
       fr.readAsText(f);
     });
     inp.click();
   }
+
+  /* 引っ越しコード。ファイルを経由しないので、iOSのファイル選択を踏まずに
+     別のURL・ホーム画面アプリ・別端末へ移せる。クリップボードはOS共通。 */
+  function copyCode(){
+    var text = JSON.stringify(payload());
+    var n = S.sets.length;
+    /* 記録が何年ぶんも溜まるとコードが長くなりすぎて貼り付けが苦しい。
+       そのときは黙って失敗させず、ファイルへ誘導する。 */
+    if (text.length > 400000){
+      toast("記録が多すぎてコードにできない（" + Math.round(text.length/1024) +
+            "KB）。上の「書き出す」でファイルにして移す。");
+      return;
+    }
+    function fallback(){
+      openText({
+        title:"引っ越しコード", readOnly:true, value:text, okLabel:"閉じる",
+        hint:"全部えらんでコピーする。移したい先で「貼り付け」に入れる。（" + n + "セット）",
+        onOk:closeText
+      });
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        markExported(); render();
+        toast("コピーした（" + n + "セット）。移したい先で「貼り付け」。");
+      }).catch(fallback);
+    } else { fallback(); }
+  }
+  function pasteCode(){
+    openText({
+      title:"引っ越しコードを貼り付け", readOnly:false, value:"", okLabel:"読み込む",
+      hint:"前の画面で「コピー」した中身をここに貼る。いまの記録は消えない（足すだけ）。",
+      onOk:function(v){
+        if (!v.trim()){ toast("何も貼られていない"); return; }
+        closeText(); parseAndImport(v);
+      }
+    });
+  }
+
+  /* ── テキストのシート ── */
+  var textOnOk = null;
+  function openText(o){
+    var ta = $("textArea");
+    $("textTitle").textContent = o.title;
+    $("textHint").textContent = o.hint || "";
+    $("textOk").textContent = o.okLabel || "読み込む";
+    ta.value = o.value || "";
+    ta.readOnly = !!o.readOnly;
+    textOnOk = o.onOk;
+    $("textSheet").hidden = false;
+    setTimeout(function(){
+      ta.focus();
+      if (o.readOnly) ta.select();
+    }, 50);
+  }
+  function closeText(){ $("textSheet").hidden = true; textOnOk = null; }
+
   function wipe(){
     if (!window.confirm("この端末の記録を全部消す。書き出していないぶんは戻せない。続ける？")) return;
     if (!window.confirm("本当に消す？")) return;
@@ -1406,6 +1531,7 @@
     if (d.tz === "local" || d.tz === "0" || d.tz === "9" || d.tz === 0 || d.tz === 9) S.tz = String(d.tz);
     if (d.rest !== undefined) S.rest = String(d.rest);
     if (d.sound !== undefined) S.sound = String(d.sound);
+    if (typeof d.lastExport === "number") S.lastExport = d.lastExport;
   }
 
   /* 旧版（ledger.cache ＋ ledger.queue）からの引っ越し */
@@ -1464,6 +1590,15 @@
   });
   $("expBtn").addEventListener("click", exportData);
   $("impBtn").addEventListener("click", importData);
+  $("copyBtn").addEventListener("click", copyCode);
+  $("pasteBtn").addEventListener("click", pasteCode);
+  $("textClose").addEventListener("click", closeText);
+  $("textOk").addEventListener("click", function(){
+    if (textOnOk) textOnOk($("textArea").value);
+  });
+  $("textSheet").addEventListener("click", function(e){
+    if (e.target === $("textSheet")) closeText();
+  });
   $("wipeBtn").addEventListener("click", wipe);
 
   $("calPrev").addEventListener("click", function(){ shiftMonth(-1); });

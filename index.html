@@ -56,6 +56,10 @@
       <b>サンプル</b><span id="sampleText"></span>
     </div>
 
+    <div class="sample-note warn" id="backupNote" hidden>
+      <b>控え</b><span id="backupText"></span>
+    </div>
+
     <section class="deck">
       <div class="deck-head">
         <h2 id="deckEx">ベンチプレス</h2>
@@ -231,12 +235,20 @@
         ブラウザのサイトデータを消すと一緒に消える。端末を変える前に書き出しておくこと。
       </p>
       <div class="field">
-        <label>書き出し／読み込み<span class="sub" id="dataCount"></span></label>
+        <label>ファイル（JSON）<span class="sub" id="dataCount"></span></label>
         <span style="display:flex;gap:6px">
           <button type="button" class="barsel" id="expBtn" style="padding:7px 12px">書き出す</button>
           <button type="button" class="barsel" id="impBtn" style="padding:7px 12px">読み込む</button>
         </span>
       </div>
+      <div class="field">
+        <label>引っ越しコード<span class="sub">別のURL・別の端末へ移すとき</span></label>
+        <span style="display:flex;gap:6px">
+          <button type="button" class="barsel" id="copyBtn" style="padding:7px 12px">コピー</button>
+          <button type="button" class="barsel" id="pasteBtn" style="padding:7px 12px">貼り付け</button>
+        </span>
+      </div>
+      <p class="foot-note" style="margin:0" id="originNote"></p>
       <button type="button" class="danger" id="wipeBtn">この端末の記録を全部消す</button>
     </section>
 
@@ -275,6 +287,19 @@
     <div class="padquick" id="padQuick"></div>
     <div class="padgrid" id="padGrid"></div>
     <button type="button" class="padok" id="padOk">決定</button>
+  </div>
+</div>
+
+<div class="sheet" id="textSheet" hidden role="dialog" aria-modal="true" aria-labelledby="textTitle">
+  <div class="sheetcard">
+    <div class="sh">
+      <h3 id="textTitle">引っ越しコード</h3>
+      <button type="button" class="close" id="textClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="padhint" id="textHint"></div>
+    <textarea id="textArea" class="tarea" spellcheck="false" autocapitalize="off"
+      autocomplete="off" autocorrect="off"></textarea>
+    <button type="button" class="padok" id="textOk">読み込む</button>
   </div>
 </div>
 

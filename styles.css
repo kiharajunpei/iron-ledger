@@ -542,3 +542,15 @@ button, .tab, .padkey, .chip, .mi, .seg button, .steps button, .day-head{
 @media (max-width:360px){
   .stdcell .w{font-size:12.5px} .stdcell .n{font-size:9px}
 }
+
+/* ── 引っ越しコード（テキストで丸ごと持ち運ぶ）───── */
+.tarea{width:100%; min-height:150px; box-sizing:border-box;
+  font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line-2);
+  border-radius:3px; padding:9px; resize:vertical;
+  -webkit-user-select:text; user-select:text; word-break:break-all}
+.sample-note button{margin-left:auto; flex:none; background:var(--surface);
+  border:1px solid var(--line-2); border-radius:3px; padding:5px 10px;
+  font-size:12px; color:var(--ink-2)}
+.sample-note.warn{border-left-color:var(--accent)}
+.sample-note.warn b{color:var(--accent)}
