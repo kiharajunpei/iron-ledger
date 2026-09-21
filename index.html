@@ -253,6 +253,25 @@
     </section>
 
     <section class="settings">
+      <div class="eyebrow">診断</div>
+      <p class="foot-note" style="margin:0">
+        この端末に<b>実際に何が入っているか</b>をそのまま出す。記録が見当たらないときは、
+        まずこれを見る。丸ごとコピーして送れる。
+      </p>
+      <pre class="tarea" id="diagOut" style="min-height:0;white-space:pre-wrap;margin:0"></pre>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="barsel" id="diagCopy" style="padding:7px 12px">診断をコピー</button>
+        <button type="button" class="barsel" id="refileBtn" style="padding:7px 12px">日付を取り直す</button>
+        <button type="button" class="barsel" id="restoreBtn" style="padding:7px 12px">控えから戻す</button>
+      </span>
+      <p class="foot-note" style="margin:0">
+        <b>日付を取り直す</b>＝ 各記録の日付を、記録した時刻と「日付の切り替わり」設定から付け直す。
+        旧版はUTC基準で日付を切っていたので、日本の午前中のトレが前日に入っていることがある。
+        <br><b>控えから戻す</b>＝ 1日1回だけ自動で取っている控えを読み込む（追加のみ。いまの記録は消えない）。
+      </p>
+    </section>
+
+    <section class="settings">
       <div class="eyebrow">強さの物差しについて</div>
       <p class="foot-note" style="margin:0">
         「推奨重量」と「強さ」は、<b>体重あたりの1RM</b>をもとにした一般的な目安（男性）。

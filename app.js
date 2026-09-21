@@ -627,8 +627,11 @@
                      .sort(function(a,b){ return b.ts - a.ts; });
     var box = $("todayList");
     if (!list.length){
+      var all = real(), days = trainedDays(all);
       box.className = "empty";
-      box.textContent = "まだ0本。上のメニューから種目を選ぶと重量が入ります。";
+      box.textContent = "今日はまだ0本。上のメニューから種目を選ぶと重量が入ります。" +
+        (all.length ? "（通算 " + all.length + "本 / " + days.length + "日・最後は " +
+          fmtDay(days[days.length-1]) + "）" : "");
       return;
     }
     box.className = "today-list";
@@ -1071,6 +1074,92 @@
       '<b>iOSでは「ホーム画面に追加」したアプリと Safari も別物</b>。' +
       'そのときは上の<b>引っ越しコード</b>で移す。消えてはいない。' +
       (isStandalone() ? '<br>いまは<b>ホーム画面のアプリ</b>として開いている。' : '');
+
+    renderDiag();
+  }
+
+  /* ═══════════════ 診断 ═══════════════
+     「消えた」と「今日のぶんが無いだけ」と「別の保管庫を見ている」は
+     見た目が同じ。推測させず、入っているものをそのまま出す。 */
+  function rawKey(k){
+    try { return localStorage.getItem("ledger." + k); } catch(e){ return null; }
+  }
+  function describe(k){
+    var v = rawKey(k);
+    if (v === null) return "なし";
+    var kb = (v.length / 1024).toFixed(1) + "KB";
+    try {
+      var a = JSON.parse(v);
+      if (Array.isArray(a)) return a.length + "件 / " + kb;
+      if (a && Array.isArray(a.sets)) return a.sets.length + "件 / " + kb +
+        (a.at ? " / " + new Date(a.at).toLocaleString("ja-JP") : "");
+      return "配列ではない / " + kb;
+    } catch(e){ return "★壊れている★ / " + kb; }
+  }
+  function diagText(){
+    var now = new Date();
+    var L = [];
+    L.push("── 鉄の帳簿 診断 ──");
+    L.push("いま      : " + now.toLocaleString("ja-JP") + " / UTC " + now.toISOString().slice(0,16));
+    L.push("時差      : UTC" + (now.getTimezoneOffset() <= 0 ? "+" : "-") +
+           Math.abs(now.getTimezoneOffset()/60));
+    L.push("日付の設定: " + S.tz + " → 今日は " + today());
+    L.push("開き方    : " + (isStandalone() ? "ホーム画面のアプリ" : "ブラウザ") + " / " + location.host);
+    L.push("");
+    L.push("ledger.sets  : " + describe("sets"));
+    L.push("ledger.bak   : " + describe("bak"));
+    L.push("ledger.cache : " + describe("cache") + "  （旧版）");
+    L.push("ledger.queue : " + describe("queue") + "  （旧版）");
+    L.push("ledger.prefs : " + (rawKey("prefs") ? "あり" : "なし"));
+    L.push("");
+    L.push("読み込めた記録: " + S.sets.length + "件");
+    if (S.sets.length){
+      var byDate = {};
+      S.sets.forEach(function(x){ byDate[x.date] = (byDate[x.date] || 0) + 1; });
+      var days = Object.keys(byDate).sort();
+      L.push("日付の範囲    : " + days[0] + " 〜 " + days[days.length-1] + "（" + days.length + "日）");
+      L.push("直近5日:");
+      days.slice(-5).forEach(function(d){ L.push("  " + d + " : " + byDate[d] + "本"); });
+      L.push("最後の1件:");
+      var last = S.sets[S.sets.length-1];
+      L.push("  " + last.date + " " + last.ex + " " + last.w + "kg×" + last.r);
+      L.push("  記録時刻 " + new Date(last.ts).toLocaleString("ja-JP"));
+      /* 設定どおりに付け直すと日付が変わるもの＝旧版のUTC基準で入ったもの */
+      var off = 0;
+      S.sets.forEach(function(x){ if (ymd(x.ts) !== x.date) off++; });
+      L.push("日付がズレている記録: " + off + "件" +
+             (off ? "  ←「日付を取り直す」で直る" : ""));
+    }
+    return L.join("\n");
+  }
+  function renderDiag(){
+    var el = $("diagOut");
+    if (el) el.textContent = diagText();
+  }
+
+  /* 記録した時刻から日付を付け直す。ts が正、date は表示用の入れ物。 */
+  function refileDates(){
+    backup(true);
+    var before = S.sets.map(function(x){ return x.date; });
+    var changed = 0;
+    S.sets.forEach(function(x){
+      var d = ymd(x.ts);
+      if (d !== x.date){ x.date = d; changed++; }
+    });
+    if (!changed){ toast("ズレている記録は無かった。"); return; }
+    save(); refresh(); render();
+    toast(changed + "件の日付を付け直した", "戻す", function(){
+      S.sets.forEach(function(x, i){ x.date = before[i]; });
+      save(); refresh(); render();
+    });
+  }
+
+  function restoreBak(){
+    var bak = LS.get("bak", null);
+    if (!bak || !Array.isArray(bak.sets) || !bak.sets.length){
+      toast("控えがまだ無い。"); return;
+    }
+    applyImport({sets:bak.sets});
   }
 
   /* ═══════════════ 画面の切り替え ═══════════════ */
@@ -1287,15 +1376,35 @@
     S.ex = name; saveMeta(); render();
   }
 
+  /* 1日1回だけ控えを取る。毎回2重に書くと容量を食うので頻度を絞る。
+     「記録が消えた」はここから戻せるかどうかで詰みかどうかが決まる。 */
+  function backup(force){
+    if (!S.sets.length) return;
+    var last = LS.get("bakAt", 0);
+    if (!force && Date.now() - last < 86400000) return;
+    if (LS.set("bak", {at:Date.now(), sets:S.sets.slice(-8000)})) LS.set("bakAt", Date.now());
+  }
+
+  /* 書いたつもりで書けていない、を作らない。
+     setItem は例外を投げずに握りつぶされることがある（プライベートモード・
+     容量・保存の制限）。書いたら必ず読み返して、入っていなければ黙らない。 */
   function save(){
-    var ok = LS.set("sets", S.sets.slice(-8000));
+    backup(false);
+    var want = S.sets.slice(-8000);
+    var ok = LS.set("sets", want);
+    var got = ok ? LS.get("sets", null) : null;
+    var wrote = Array.isArray(got) && got.length === want.length;
+
     var bar = $("syncBar");
-    if (!ok){
+    if (!wrote){
       bar.hidden = false; bar.className = "syncbar off";
-      bar.innerHTML = '<b>保存不可</b><span>この端末に書き込めません（プライベートモードか容量不足）。' +
-        'タブを閉じると今日の記録が消えます。</span>';
-    } else { bar.hidden = true; }
-    return ok;
+      bar.innerHTML = '<b>保存できていない</b><span>この端末に書き込めない' +
+        '（プライベートブラウズか、容量がいっぱい）。<b>このまま閉じると今日の記録は消える。</b>' +
+        '設定→引っ越しコードでコピーして退避すること。</span>';
+      return false;
+    }
+    bar.hidden = true;
+    return true;
   }
   function saveMeta(){
     LS.set("prefs", {custom:S.custom, bars:S.bars, level:S.level, bw:S.bw,
@@ -1514,6 +1623,7 @@
   function wipe(){
     if (!window.confirm("この端末の記録を全部消す。書き出していないぶんは戻せない。続ける？")) return;
     if (!window.confirm("本当に消す？")) return;
+    backup(true);
     S.sets = []; LS.del("sets"); LS.del("cache"); LS.del("queue");
     refresh(); render();
     toast("消した。");
@@ -1537,6 +1647,15 @@
   /* 旧版（ledger.cache ＋ ledger.queue）からの引っ越し */
   function loadSets(){
     var v2 = LS.get("sets", null);
+    if (Array.isArray(v2) && v2.length) return v2;
+
+    /* sets が空か読めない。控えがあれば、それが正。黙って空で始めない。
+       ここで空のまま進むと、次に1セット記録した時点で空が上書き確定してしまう。 */
+    var bak = LS.get("bak", null);
+    if (bak && Array.isArray(bak.sets) && bak.sets.length){
+      S.restored = bak.sets.length;
+      return bak.sets;
+    }
     if (Array.isArray(v2)) return v2;
 
     var cache = LS.get("cache", []) || [], queue = LS.get("queue", []) || [];
@@ -1557,15 +1676,40 @@
   }
 
   function start(){
-    applyPrefs(LS.get("prefs", null));
+    var prefs = LS.get("prefs", null);
+    /* 旧版は日付の区切りが UTC 固定だった。設定が無い＝まだ一度も選んでいない人。
+       そのまま端末のローカル時刻に切り替えると、旧版で入れた記録の日付が
+       ズレたまま残り、「今日やったのに今日のぶんが無い」ことになる。
+       ts（記録した瞬間）が正なので、そこから付け直す。 */
+    var hadTz = !!(prefs && prefs.tz !== undefined);
+    applyPrefs(prefs);
     S.sets = loadSets();
     S.demo = buildDemo();
+
+    if (!hadTz && S.sets.length){
+      var off = 0;
+      S.sets.forEach(function(x){
+        var d = ymd(x.ts);
+        if (d !== x.date){ x.date = d; off++; }
+      });
+      if (off){ backup(true); save(); S.refiled = off; }
+    }
+    saveMeta();                 /* tz を書いて、二度と走らせない */
+
     refresh();
     S.calMonth = today().slice(0,7);
 
     var first = menuDay().items[0];
     if (first) pick(first, false); else render();
     setView("today");
+
+    /* 起動時に手当てしたことは黙らない。黙ると次に同じ不安を持つ。 */
+    if (S.restored){
+      toast("記録が読めなかったので<b>控えから" + S.restored + "件</b>戻した。");
+    } else if (S.refiled){
+      toast("旧版はUTC基準で日付を切っていたので、<b>" + S.refiled +
+            "件</b>の日付をこの端末の時刻で付け直した。記録は消えていない。");
+    }
   }
 
   /* ═══════════════ イベント ═══════════════ */
@@ -1600,6 +1744,19 @@
     if (e.target === $("textSheet")) closeText();
   });
   $("wipeBtn").addEventListener("click", wipe);
+  $("refileBtn").addEventListener("click", refileDates);
+  $("restoreBtn").addEventListener("click", restoreBak);
+  $("diagCopy").addEventListener("click", function(){
+    var t = diagText();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(function(){ toast("診断をコピーした。"); })
+        .catch(function(){ openText({title:"診断", readOnly:true, value:t, okLabel:"閉じる",
+          hint:"全部えらんでコピーする。", onOk:closeText}); });
+    } else {
+      openText({title:"診断", readOnly:true, value:t, okLabel:"閉じる",
+        hint:"全部えらんでコピーする。", onOk:closeText});
+    }
+  });
 
   $("calPrev").addEventListener("click", function(){ shiftMonth(-1); });
   $("calNext").addEventListener("click", function(){ shiftMonth(1); });
