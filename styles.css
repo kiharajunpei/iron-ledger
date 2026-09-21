@@ -661,3 +661,6 @@ button, .tab, .padkey, .chip, .mi, .seg button, .steps button, .day-head{
   font-variant-numeric:tabular-nums; background:none; border:none; color:inherit; padding:4px 2px}
 .bwrow .dl{font-family:var(--font-display); font-size:12px; font-variant-numeric:tabular-nums;
   white-space:nowrap}
+.bwrow .del{background:none; border:none; color:var(--ink-3); font-size:16px; line-height:1;
+  padding:4px 2px; min-width:28px}
+.bwrow .del:hover{color:var(--accent)}
