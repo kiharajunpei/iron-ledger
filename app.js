@@ -470,6 +470,36 @@
     listEl.innerHTML = "";
     var doneSets = 0, totalSets = 0;
 
+    /* 中身ゼロのメニューだと画面が真っさらになり、記録ごと消えたように見える。
+       消えていないことと、戻り方を出す。 */
+    if (!d.items.length){
+      var note = el("div", "empty");
+      note.style.cssText = "border:none;text-align:left;padding:14px";
+      note.innerHTML = '<b>このメニューにはまだ種目が無い。</b><br>' +
+        '記録は消えていない（「積み上げ」タブで見られる）。' +
+        '種目を足すか、別のメニューに切り替える。';
+      listEl.appendChild(note);
+
+      var row = el("div", "empty");
+      row.style.cssText = "border:none;display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 12px";
+      var b1 = el("button", "barsel", "種目を足す"); b1.type = "button";
+      b1.style.padding = "8px 12px";
+      b1.addEventListener("click", function(){ openDayEditor(dayIndex()); });
+      row.appendChild(b1);
+      S.menus.forEach(function(m){
+        if (m.id === S.level) return;
+        var has = m.days.some(function(x){ return x.items.length; });
+        if (!has) return;
+        var b = el("button", "barsel", "「" + m.label + "」に切り替える"); b.type = "button";
+        b.style.padding = "8px 12px";
+        b.addEventListener("click", function(){
+          S.level = m.id; S.offset = 0; saveMeta(); render();
+        });
+        row.appendChild(b);
+      });
+      listEl.appendChild(row);
+    }
+
     d.items.forEach(function(it){
       var done = setsTodayFor(it.ex);
       doneSets += Math.min(done, it.sets); totalSets += it.sets;
@@ -1560,6 +1590,9 @@
       }});
   }
   function addMenu(copy){
+    if (!copy && !window.confirm(
+      "中身ゼロのメニューを作って、そこへ切り替える。\n" +
+      "今日の画面は一度からっぽになる（記録は消えない）。続ける？")) return;
     var src = copy ? prog() : null;
     var m = {
       id:"m" + Date.now(),
